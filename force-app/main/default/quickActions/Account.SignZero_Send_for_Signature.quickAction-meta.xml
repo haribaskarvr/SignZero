@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QuickAction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Send a PDF on this record for signature with SignZero.</description>
+    <flowDefinition>SignZero_Send_for_Signature</flowDefinition>
+    <label>Send for Signature</label>
+    <optionsCreateFeedItem>false</optionsCreateFeedItem>
+    <type>Flow</type>
+</QuickAction>

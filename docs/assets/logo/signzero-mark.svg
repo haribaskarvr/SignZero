@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">SignZero</title>
+  <defs>
+    <linearGradient id="sz-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4338CA"/>
+      <stop offset="0.55" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="sz-ink" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <radialGradient id="sz-glow" cx="0.25" cy="0.15" r="0.9">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.28"/>
+      <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Knock the signature stroke out of the zero so it reads as a slashed zero -->
+    <mask id="sz-cut">
+      <rect width="256" height="256" fill="#fff"/>
+      <path d="M58 196 C 100 190, 112 152, 128 128 S 162 72, 196 62" fill="none" stroke="#000" stroke-width="30" stroke-linecap="round"/>
+    </mask>
+  </defs>
+
+  <rect width="256" height="256" rx="58" fill="url(#sz-bg)"/>
+  <rect width="256" height="256" rx="58" fill="url(#sz-glow)"/>
+
+  <!-- signature line -->
+  <path d="M70 214 H186" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- the zero -->
+  <ellipse cx="128" cy="124" rx="52" ry="66" fill="none" stroke="#FFFFFF" stroke-width="20" mask="url(#sz-cut)"/>
+
+  <!-- the signature flourish -->
+  <path d="M58 196 C 100 190, 112 152, 128 128 S 162 72, 196 62" fill="none" stroke="url(#sz-ink)" stroke-width="13" stroke-linecap="round"/>
+
+  <!-- pen nib at the end of the stroke -->
+  <g transform="translate(196 62) rotate(58)">
+    <path d="M0 0 L-11 -20 Q-12 -34 0 -44 Q12 -34 11 -20 Z" fill="#FFFFFF"/>
+    <path d="M0 -2 V-22" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="0" cy="-25" r="3.6" fill="#2563EB"/>
+  </g>
+</svg>

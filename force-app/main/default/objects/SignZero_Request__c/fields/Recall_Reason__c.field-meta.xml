@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Recall_Reason__c</fullName>
+    <description>Reason the sender gave when recalling the envelope with the Recall Envelope action.</description>
+    <inlineHelpText>Reason the sender gave when recalling (voiding) the envelope. Set by the Recall Envelope action.</inlineHelpText>
+    <label>Recall Reason</label>
+    <length>1000</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

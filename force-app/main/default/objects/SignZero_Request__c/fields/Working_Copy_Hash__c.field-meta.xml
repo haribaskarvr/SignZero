@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Working_Copy_Hash__c</fullName>
+    <description>SHA-256 of the current working copy.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>SHA-256 fingerprint of the current working copy, used to check each signer really added a signature.</inlineHelpText>
+    <label>Working Copy Hash</label>
+    <length>64</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

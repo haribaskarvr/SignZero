@@ -1,0 +1,237 @@
+<template>
+    <div class="portal-root" style={dynamicBrandStyles}>
+        <header class="brand-header">
+            <div class="brand-id">
+                <template lwc:if={branding.logoUrl}>
+                    <img src={branding.logoUrl} alt="Company logo" class="brand-logo" />
+                </template>
+                <div class="brand-text">
+                    <h1 class="doc-title">{documentName}</h1>
+                    <p class="text-muted">{branding.companyName}<template lwc:if={envelopeNumber}> ·
+                            {envelopeNumber}</template></p>
+                </div>
+            </div>
+            <template lwc:if={isSigning}>
+                <div class="header-actions">
+                    <template lwc:if={adoptedSignature}>
+                        <button class="link-button" onclick={handleChangeSignature}>{labels.changeSignature}</button>
+                    </template>
+                    <template lwc:if={allowReassign}>
+                        <button class="link-button" onclick={openReassignModal}>{labels.reassignAction}</button>
+                    </template>
+                    <button class="link-button" onclick={openDeclineModal}>{labels.decline}</button>
+                </div>
+            </template>
+        </header>
+
+        <template lwc:if={isLoading}>
+            <div class="status-panel">
+                <div class="spinner" aria-hidden="true"></div>
+                <p>{loadingMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isError}>
+            <div class="status-panel">
+                <h2 class="status-title">{errorTitle}</h2>
+                <p>{errorMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isDone}>
+            <div class="status-panel">
+                <div class="status-icon ok">✓</div>
+                <h2 class="status-title">{doneTitle}</h2>
+                <p>{doneMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isReassigned}>
+            <div class="status-panel">
+                <div class="status-icon ok">✓</div>
+                <h2 class="status-title">{reassignedTitle}</h2>
+                <p>{reassignedMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isDeclined}>
+            <div class="status-panel">
+                <h2 class="status-title">{labels.declinedTitle}</h2>
+                <p>{labels.declinedMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isViewing}>
+            <div class="view-banner" role="status">{viewingMessage}</div>
+        </template>
+
+        <template lwc:if={showViewer}>
+            <div class="viewer-toolbar" role="toolbar">
+                <div class="tool-group">
+                    <button class="icon-button" title={labels.prevPage} aria-label={labels.prevPage}
+                        onclick={handlePrevPage} disabled={isFirstPage}>‹</button>
+                    <span class="page-indicator" aria-live="polite">{pageIndicator}</span>
+                    <button class="icon-button" title={labels.nextPage} aria-label={labels.nextPage}
+                        onclick={handleNextPage} disabled={isLastPage}>›</button>
+                </div>
+                <div class="tool-group">
+                    <button class="icon-button" title={labels.zoomOut} aria-label={labels.zoomOut}
+                        onclick={handleZoomOut}>−</button>
+                    <span class="zoom-value">{zoomLabel}</span>
+                    <button class="icon-button" title={labels.zoomIn} aria-label={labels.zoomIn}
+                        onclick={handleZoomIn}>+</button>
+                    <button class={fitPageClass} onclick={handleFitPage}>{labels.fitPage}</button>
+                    <button class={fitWidthClass} onclick={handleFitWidth}>{labels.fitWidth}</button>
+                </div>
+            </div>
+        </template>
+
+        <main class={documentContainerClass}>
+            <div class="pdf-scroll-viewport">
+                <div class="pages-wrapper" lwc:dom="manual"></div>
+            </div>
+        </main>
+
+        <template lwc:if={showGuide}>
+            <div class="guided-nav-container">
+                <button class="guided-nav-button" onclick={handleJumpToNextField} disabled={isSubmitting}>
+                    {guideButtonLabel}
+                </button>
+            </div>
+        </template>
+
+        <template lwc:if={showConsentModal}>
+            <div class="consent-backdrop">
+                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+                    <h2 id="consent-title" class="modal-title">{labels.consentTitle}</h2>
+                    <div class="consent-body">
+                        <p>{consentGreeting}</p>
+                        <p>{labels.consentBody}</p>
+                        <p>{labels.consentPaperOption}</p>
+                    </div>
+                    <div class="modal-actions">
+                        <!-- The wrong recipient can hand the document on without agreeing to anything first. -->
+                        <template lwc:if={allowReassign}>
+                            <button class="link-button consent-reassign"
+                                onclick={openReassignModal}>{labels.reassignAction}</button>
+                        </template>
+                        <button class="neutral-button" onclick={openDeclineModal}>{labels.decline}</button>
+                        <button class="brand-button" onclick={handleAcceptConsent}
+                            disabled={isWorking}>{labels.consentAccept}</button>
+                    </div>
+                </section>
+            </div>
+        </template>
+
+        <template lwc:if={showSignatureModal}>
+            <div class="consent-backdrop">
+                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="sig-title">
+                    <h2 id="sig-title" class="modal-title">{labels.padTitle}</h2>
+                    <p class="text-muted">{labels.padHelp}</p>
+                    <div class="mode-tabs" role="tablist">
+                        <template for:each={modeTabs} for:item="tab">
+                            <button key={tab.id} class={tab.className} role="tab" aria-selected={tab.selected}
+                                data-mode={tab.id} onclick={handleModeChange}>{tab.label}</button>
+                        </template>
+                    </div>
+
+                    <template lwc:if={isTypeMode}>
+                        <label class="field-label" for="typed-name">{labels.typeLabel}</label>
+                        <input id="typed-name" class="text-input" type="text" maxlength="80" value={typedName}
+                            oninput={handleTypedNameChange} />
+                        <p class="field-label">{labels.typeStyle}</p>
+                        <div class="typed-options" role="radiogroup">
+                            <template for:each={typedStyleOptions} for:item="option">
+                                <button key={option.index} class={option.className} role="radio"
+                                    aria-checked={option.selected} data-index={option.index}
+                                    onclick={handleTypedStyleChange}>
+                                    <span class="typed-preview" style={option.inlineStyle}>{option.text}</span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template lwc:if={isDrawMode}>
+                        <p class="text-muted">{labels.drawHelp}</p>
+                        <div class="canvas-border">
+                            <canvas class="sig-pad" onpointerdown={startDrawing} onpointermove={draw}
+                                onpointerup={stopDrawing} onpointerleave={stopDrawing}
+                                onpointercancel={stopDrawing}></canvas>
+                        </div>
+                    </template>
+
+                    <template lwc:if={isUploadMode}>
+                        <label class="field-label" for="sig-upload">{labels.uploadLabel}</label>
+                        <input id="sig-upload" class="file-input" type="file" accept="image/png,image/jpeg"
+                            onchange={handleUpload} />
+                        <p class="text-muted">{labels.uploadHelp}</p>
+                        <template lwc:if={uploadError}>
+                            <p class="field-error" role="alert">{uploadError}</p>
+                        </template>
+                        <template lwc:if={uploadedSignature}>
+                            <div class="canvas-border upload-preview">
+                                <img src={uploadedSignature} alt={labels.uploadLabel} />
+                            </div>
+                        </template>
+                    </template>
+
+                    <div class="modal-actions spread">
+                        <button class="neutral-button" onclick={clearSignaturePad}>{labels.clear}</button>
+                        <div>
+                            <button class="neutral-button" onclick={closeSignatureModal}>{labels.cancel}</button>
+                            <button class="brand-button" onclick={confirmSignaturePlacement}
+                                disabled={adoptDisabled}>{labels.adoptSign}</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </template>
+
+        <template lwc:if={showDeclineModal}>
+            <div class="consent-backdrop">
+                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="decline-title">
+                    <h2 id="decline-title" class="modal-title">{labels.declineTitle}</h2>
+                    <label class="field-label" for="decline-reason">{labels.declineReason}</label>
+                    <textarea id="decline-reason" class="decline-reason" rows="4"
+                        onchange={handleReasonChange}></textarea>
+                    <div class="modal-actions">
+                        <button class="neutral-button" onclick={closeDeclineModal}>{labels.back}</button>
+                        <button class="danger-button" onclick={confirmDecline}
+                            disabled={isWorking}>{labels.decline}</button>
+                    </div>
+                </section>
+            </div>
+        </template>
+
+        <template lwc:if={showReassignModal}>
+            <div class="consent-backdrop">
+                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reassign-title">
+                    <h2 id="reassign-title" class="modal-title">{labels.reassignAction}</h2>
+                    <p class="text-muted">{labels.reassignHelp}</p>
+                    <label class="field-label" for="reassign-name">{labels.reassignName}</label>
+                    <input id="reassign-name" class="text-input" type="text" maxlength="80" data-field="name"
+                        value={reassignTo.name} oninput={handleReassignInput} />
+                    <label class="field-label" for="reassign-email">{labels.reassignEmail}</label>
+                    <input id="reassign-email" class="text-input" type="email" maxlength="80" data-field="email"
+                        value={reassignTo.email} oninput={handleReassignInput} />
+                    <label class="field-label" for="reassign-reason">{labels.reassignReason}</label>
+                    <textarea id="reassign-reason" class="decline-reason" rows="3" data-field="reason"
+                        oninput={handleReassignInput}></textarea>
+                    <div class="modal-actions">
+                        <button class="neutral-button" onclick={closeReassignModal}>{labels.back}</button>
+                        <button class="brand-button" onclick={confirmReassign}
+                            disabled={isWorking}>{labels.reassignConfirm}</button>
+                    </div>
+                </section>
+            </div>
+        </template>
+
+        <template lwc:if={pdfEngineUrl}>
+            <iframe class="pdf-engine" src={pdfEngineUrl} title="SignZero PDF engine" tabindex="-1" aria-hidden="true"></iframe>
+        </template>
+
+        <template lwc:if={toastMessage}>
+            <div class="toast" role="alert">{toastMessage}</div>
+        </template>
+    </div>
+</template>

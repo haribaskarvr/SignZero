@@ -1,0 +1,24 @@
+<template>
+    <lightning-quick-action-panel header="Resend Invitation">
+        <template lwc:if={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+        </template>
+        <template lwc:if={errorMessage}>
+            <div class="slds-text-color_error slds-p-around_small" role="alert">{errorMessage}</div>
+        </template>
+        <template lwc:if={hasTargets}>
+            <p class="slds-m-bottom_small">A new signing link will be emailed to:</p>
+            <ul class="slds-list_dotted slds-m-bottom_small">
+                <template for:each={targets} for:item="t">
+                    <li key={t.email}><strong>{t.name}</strong> ({t.email})</li>
+                </template>
+            </ul>
+            <p class="slds-text-color_weak">Any link sent to them before stops working. The resend is recorded in the audit trail.</p>
+        </template>
+        <div slot="footer">
+            <lightning-button label="Cancel" onclick={close}></lightning-button>
+            <lightning-button class="slds-m-left_x-small" variant="brand" label="Resend" onclick={handleResend}
+                disabled={resendDisabled}></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

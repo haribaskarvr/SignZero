@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomNotificationType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customNotifTypeName>SignZero Status Update</customNotifTypeName>
+    <description>Tells the sender when a signer signs or declines, and when an envelope completes or fails to seal.</description>
+    <desktop>true</desktop>
+    <masterLabel>SignZero Status Update</masterLabel>
+    <mobile>true</mobile>
+    <slack>false</slack>
+</CustomNotificationType>

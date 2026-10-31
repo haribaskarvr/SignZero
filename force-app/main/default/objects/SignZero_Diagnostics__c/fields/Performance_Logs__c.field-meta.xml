@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Performance_Logs__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Writes step timings from the signing page to the browser console.</description>
+    <inlineHelpText>When on, the signing page logs how long each step takes (loading, drawing, stamping, submitting) to the browser console. To diagnose signers only, set it on the signing site&apos;s guest user profile.</inlineHelpText>
+    <label>Performance Logs</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

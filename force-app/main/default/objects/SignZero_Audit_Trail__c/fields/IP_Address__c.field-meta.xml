@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>IP_Address__c</fullName>
+    <description>IP Address</description>
+    <externalId>false</externalId>
+    <inlineHelpText>IP address for the event, when available.</inlineHelpText>
+    <label>IP Address</label>
+    <length>45</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

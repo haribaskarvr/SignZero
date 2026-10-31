@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Last_Known_IP__c</fullName>
+    <description>Last Known IP</description>
+    <externalId>false</externalId>
+    <inlineHelpText>IP address seen during signing, when Salesforce makes it available (not available on public site sessions).</inlineHelpText>
+    <label>Last Known IP</label>
+    <length>45</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

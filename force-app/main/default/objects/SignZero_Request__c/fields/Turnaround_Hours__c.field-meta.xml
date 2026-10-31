@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Turnaround_Hours__c</fullName>
+    <description>Hours from dispatch to completion.</description>
+    <externalId>false</externalId>
+    <formula>IF(ISBLANK(Completed_At__c), NULL, (Completed_At__c - CreatedDate) * 24)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>Hours from sending to completion. Blank until completed.</inlineHelpText>
+    <label>Turnaround (Hours)</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>1</scale>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

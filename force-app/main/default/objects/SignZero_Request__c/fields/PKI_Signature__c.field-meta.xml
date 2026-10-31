@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>PKI_Signature__c</fullName>
+    <description>Base64 RSA-SHA256 detached signature of the executed PDF made with the org certificate.</description>
+    <inlineHelpText>Optional RSA-SHA256 signature of the executed PDF made with the organisation certificate named in SignZero settings.</inlineHelpText>
+    <label>PKI Signature</label>
+    <length>32768</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>5</visibleLines>
+</CustomField>

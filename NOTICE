@@ -1,0 +1,15 @@
+SignZero
+Copyright 2026 haribaskarvr
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product bundles the following third-party software:
+
+- PDF.js 3.11.174 (pdf.min.js, pdf.worker.min.js)
+  Copyright Mozilla Foundation
+  Apache License, Version 2.0 (LICENSE-pdfjs.txt)
+
+- pdf-lib 1.17.1 (pdf-lib.min.js)
+  Copyright (c) 2019 Andrew Dillon
+  MIT License (LICENSE-pdf-lib.txt)
+  pdf-lib itself includes pako (MIT License) and tslib (see the notice at the top of pdf-lib.min.js).

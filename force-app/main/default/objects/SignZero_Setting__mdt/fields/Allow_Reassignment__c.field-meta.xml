@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Allow_Reassignment__c</fullName>
+    <defaultValue>true</defaultValue>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>When on, a signer can delegate their signature to someone else from the signing page.</inlineHelpText>
+    <label>Allow Signers to Reassign</label>
+    <type>Checkbox</type>
+</CustomField>

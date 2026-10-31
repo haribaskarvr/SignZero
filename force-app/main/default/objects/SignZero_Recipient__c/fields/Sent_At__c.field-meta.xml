@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Sent_At__c</fullName>
+    <description>Sent At</description>
+    <inlineHelpText>When the most recent invitation was emailed.</inlineHelpText>
+    <label>Sent At</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>DateTime</type>
+</CustomField>

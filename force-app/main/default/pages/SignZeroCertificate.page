@@ -1,0 +1,93 @@
+<apex:page controller="SignZeroCertificateController" renderAs="pdf" applyHtmlTag="false" applyBodyTag="false" showHeader="false" sidebar="false" standardStylesheets="false">
+    <html>
+    <head>
+        <style>
+            @page { size: letter; margin: 16mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 8pt; color: #777; } }
+            body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #181818; }
+            .header { border-bottom: 2px solid #0176d3; padding-bottom: 8px; margin-bottom: 14px; }
+            .title { font-size: 18pt; font-weight: bold; color: #0176d3; }
+            .sub { margin: 4px 0 0; color: #555; }
+            h3 { margin: 18px 0 6px; color: #0176d3; font-size: 11pt; }
+            table { width: 100%; border-collapse: collapse; }
+            td, th { padding: 4px 5px; border-bottom: 1px solid #ddd; vertical-align: top; text-align: left; }
+            th { background-color: #f3f3f3; font-size: 8.5pt; }
+            .label { font-weight: bold; width: 26%; color: #444; }
+            .hash { font-family: Courier, monospace; font-size: 7.5pt; word-wrap: break-word; }
+            .small { font-size: 7.5pt; color: #555; }
+            .ok { color: #2e844a; font-weight: bold; }
+            .bad { color: #ba0517; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="title">Certificate of Completion</div>
+            <p class="sub">Envelope {!sigRequest.Name} &middot; Generated {!generatedAt}</p>
+        </div>
+
+        <table>
+            <tr><td class="label">Document</td><td>{!sigRequest.Document_Name__c}</td></tr>
+            <tr><td class="label">Source record</td><td>{!sigRequest.Source_Record_Id__c}</td></tr>
+            <tr><td class="label">Original SHA-256</td><td class="hash">{!sigRequest.Pre_Sign_Hash__c}</td></tr>
+            <tr><td class="label">Executed SHA-256</td><td class="hash">{!postSignHash}</td></tr>
+            <tr>
+                <td class="label">Audit ledger integrity</td>
+                <td>
+                    <apex:outputText rendered="{!ledgerIntact}" styleClass="ok" value="Verified: hash chain intact"/>
+                    <apex:outputText rendered="{!NOT(ledgerIntact)}" styleClass="bad" value="FAILED: audit chain does not verify"/>
+                </td>
+            </tr>
+        </table>
+
+        <h3>Signers</h3>
+        <table>
+            <thead>
+                <tr><th>Signer</th><th>Authentication</th><th>Timestamps</th></tr>
+            </thead>
+            <tbody>
+                <apex:repeat value="{!signers}" var="r">
+                    <tr>
+                        <td>
+                            <strong>{!r.name}</strong><br/>{!r.email}<br/>
+                            Role: {!r.role}<br/>Status: {!r.status}
+                        </td>
+                        <td>
+                            {!r.authMethod}<br/>Signature: {!r.signatureMethod}<br/>IP: {!r.ip}<br/>
+                            <span class="small">{!r.userAgent}</span>
+                        </td>
+                        <td>
+                            Sent: {!r.sentAt}<br/>
+                            Viewed: {!r.viewedAt}<br/>
+                            Consented: {!r.consentedAt}<br/>
+                            Signed: {!r.signedAt}
+                        </td>
+                    </tr>
+                </apex:repeat>
+            </tbody>
+        </table>
+
+        <h3>Audit Ledger</h3>
+        <table>
+            <thead>
+                <tr><th>Time</th><th>Signer</th><th>Event</th><th>IP</th><th>Details / Event hash</th></tr>
+            </thead>
+            <tbody>
+                <apex:repeat value="{!events}" var="e">
+                    <tr>
+                        <td>{!e.timestamp}</td>
+                        <td>{!e.signer}</td>
+                        <td>{!e.eventType}</td>
+                        <td>{!e.ip}</td>
+                        <td>{!e.details}<br/><span class="hash">{!e.eventHash}</span></td>
+                    </tr>
+                </apex:repeat>
+            </tbody>
+        </table>
+
+        <apex:outputPanel layout="block" rendered="{!pkiApplied}">
+            <h3>Organisation Digital Signature</h3>
+            <p class="small">The executed PDF bytes were signed with RSA-SHA256 using the organisation's X.509 certificate.
+                The detached signature is stored on envelope {!sigRequest.Name}.</p>
+        </apex:outputPanel>
+    </body>
+    </html>
+</apex:page>

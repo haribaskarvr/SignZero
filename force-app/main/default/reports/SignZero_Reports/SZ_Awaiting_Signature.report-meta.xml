@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Report xmlns="http://soap.sforce.com/2006/04/metadata">
+    <columns>
+        <field>CUST_NAME</field>
+    </columns>
+    <columns>
+        <field>SignZero_Request__c.Document_Name__c</field>
+    </columns>
+    <columns>
+        <field>SignZero_Request__c.Signers_Signed__c</field>
+    </columns>
+    <columns>
+        <field>SignZero_Request__c.Signers_Total__c</field>
+    </columns>
+    <description>Open envelopes grouped by days outstanding.</description>
+    <filter>
+        <criteriaItems>
+            <column>SignZero_Request__c.Status__c</column>
+            <columnToColumn>false</columnToColumn>
+            <isUnlocked>true</isUnlocked>
+            <operator>equals</operator>
+            <value>Out for Signature</value>
+        </criteriaItems>
+    </filter>
+    <format>Summary</format>
+    <groupingsDown>
+        <dateGranularity>Day</dateGranularity>
+        <field>SignZero_Request__c.Days_Outstanding__c</field>
+        <sortOrder>Asc</sortOrder>
+    </groupingsDown>
+    <name>Envelopes Awaiting Signature</name>
+    <params>
+        <name>co</name>
+        <value>1</value>
+    </params>
+    <reportType>CustomEntity$SignZero_Request__c</reportType>
+    <scope>organization</scope>
+    <showDetails>true</showDetails>
+    <showGrandTotal>true</showGrandTotal>
+    <showSubTotals>true</showSubTotals>
+    <timeFrameFilter>
+        <dateColumn>CUST_CREATED_DATE</dateColumn>
+        <interval>INTERVAL_CUSTOM</interval>
+    </timeFrameFilter>
+</Report>

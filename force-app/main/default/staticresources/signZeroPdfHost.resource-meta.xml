@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata">
+    <cacheControl>Public</cacheControl>
+    <contentType>application/zip</contentType>
+    <description>SignZero PDF host: the page the signing portal loads in a hidden iframe to draw, clean and stamp PDFs outside Lightning Web Security. Bundles PDF.js 3.11.174 (Apache-2.0) and pdf-lib 1.17.1 (MIT).</description>
+</StaticResource>

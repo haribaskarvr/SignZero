@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Routing_Order__c</fullName>
+    <defaultValue>1</defaultValue>
+    <description>Routing Order</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Signing sequence. Signers with order 1 are invited first; order 2 only after everyone in order 1 has signed. Signers sharing an order sign in parallel.</inlineHelpText>
+    <label>Routing Order</label>
+    <precision>3</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

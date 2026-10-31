@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Delegated_From__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>On a delegate: the signer who reassigned their signature to this person.</description>
+    <inlineHelpText>On a delegate: the signer who reassigned their signature to this person.</inlineHelpText>
+    <label>Delegated From</label>
+    <referenceTo>SignZero_Recipient__c</referenceTo>
+    <relationshipLabel>Delegates</relationshipLabel>
+    <relationshipName>Delegates</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Hands envelope progression (next routing order, sealing) off from the guest-user context to a trusted running user.</description>
+    <eventType>HighVolume</eventType>
+    <label>SignZero Event</label>
+    <pluralLabel>SignZero Events</pluralLabel>
+    <publishBehavior>PublishAfterCommit</publishBehavior>
+</CustomObject>

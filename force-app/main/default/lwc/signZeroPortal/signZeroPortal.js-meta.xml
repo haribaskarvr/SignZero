@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>SignZero Signing Portal</masterLabel>
+    <description>Public, token-authenticated signing experience for SignZero envelopes.</description>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property name="primaryColor" type="Color" label="Primary colour" description="Leave blank to use SignZero settings or the site theme's brand colour."/>
+            <property name="primaryHoverColor" type="Color" label="Primary hover colour" description="Leave blank to use SignZero settings or the site theme."/>
+            <property name="accentColor" type="Color" label="Accent colour" description="Highlight for the active signature spot."/>
+            <property name="logoUrl" type="String" label="Logo URL" description="Leave blank to use SignZero settings."/>
+            <property name="companyName" type="String" label="Company name" description="Leave blank to use SignZero settings."/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

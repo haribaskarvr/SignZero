@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Signer_Role__c</fullName>
+    <description>Matches the {{sig:role}} anchor tags in the PDF. Values come from the SignZero Signer Role global value set.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Matches the {{sig:Role}} tags in the PDF that mark where this person signs, e.g. Employer or Employee.</inlineHelpText>
+    <label>Signer Role</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>SignZero_Signer_Role</valueSetName>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,30 @@
+<template>
+    <lightning-quick-action-panel header={labels.header}>
+        <template lwc:if={isLoading}>
+            <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
+        </template>
+        <template lwc:if={errorMessage}>
+            <div class="slds-text-color_error slds-p-around_small" role="alert">{errorMessage}</div>
+        </template>
+        <template lwc:if={canRecall}>
+            <p class="slds-m-bottom_small">{labels.intro}</p>
+            <template lwc:if={hasTargets}>
+                <p class="slds-m-bottom_small">{labels.notifyIntro}</p>
+                <ul class="slds-list_dotted slds-m-bottom_small">
+                    <template for:each={targets} for:item="t">
+                        <li key={t.email}><strong>{t.name}</strong> ({t.email})</li>
+                    </template>
+                </ul>
+            </template>
+            <lightning-textarea label={labels.reason} max-length="1000" value={reason}
+                onchange={handleReasonChange}
+                field-level-help={labels.reasonHelp}></lightning-textarea>
+            <p class="slds-text-color_weak slds-m-top_small">{labels.warning}</p>
+        </template>
+        <div slot="footer">
+            <lightning-button label={labels.cancel} onclick={close}></lightning-button>
+            <lightning-button class="slds-m-left_x-small" variant="destructive" label={labels.confirm} onclick={handleRecall}
+                disabled={recallDisabled}></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

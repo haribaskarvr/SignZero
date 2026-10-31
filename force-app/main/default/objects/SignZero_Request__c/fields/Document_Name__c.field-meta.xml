@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Document_Name__c</fullName>
+    <description>Document Name</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Name of the agreement as signers see it in the portal, emails and the certificate. Can be edited while the envelope is out for signature.</inlineHelpText>
+    <label>Document Name</label>
+    <length>255</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

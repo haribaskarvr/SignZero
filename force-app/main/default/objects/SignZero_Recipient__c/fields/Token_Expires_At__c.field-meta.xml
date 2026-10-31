@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Token_Expires_At__c</fullName>
+    <description>Token Expires At</description>
+    <inlineHelpText>When the signing link stops working. After signing, the link stays valid until this time for read-only viewing.</inlineHelpText>
+    <label>Token Expires At</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>DateTime</type>
+</CustomField>

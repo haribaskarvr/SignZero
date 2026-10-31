@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>SignZero Signer Editor</masterLabel>
+    <description>Flow screen component that collects the signers for a SignZero envelope.</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="signers" type="apex://SignZeroSigner[]" label="Signers"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

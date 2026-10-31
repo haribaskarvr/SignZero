@@ -1,0 +1,995 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomLabels xmlns="http://soap.sforce.com/2006/04/metadata">
+    <labels>
+        <fullName>SZ_Loading_Session</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Opening your secure signing session…</shortDescription>
+        <value>Opening your secure signing session…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Loading_Document</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Preparing your document…</shortDescription>
+        <value>Preparing your document…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Error_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>We couldn't open this signing session</shortDescription>
+        <value>We couldn't open this signing session</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Missing_Token</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This link is missing its signing token. Please use the link from your email.</shortDescription>
+        <value>This link is missing its signing token. Please use the link from your email.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Done_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Thank you, {0}</shortDescription>
+        <value>Thank you, {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Done_Pending_Message</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Your signature has been recorded. We'll email you the executed agreement once ev</shortDescription>
+        <value>Your signature has been recorded. We'll email you the executed agreement once every party has signed.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Done_Final_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>All parties have signed</shortDescription>
+        <value>All parties have signed</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Done_Final_Message</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Thank you, {0}. The agreement is now complete. The executed agreement and its Ce</shortDescription>
+        <value>Thank you, {0}. The agreement is now complete. The executed agreement and its Certificate of Completion will be emailed to every signer shortly.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Declined_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>You declined to sign</shortDescription>
+        <value>You declined to sign</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Declined_Message</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The sender has been notified. You can close this window.</shortDescription>
+        <value>The sender has been notified. You can close this window.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Electronic Record &amp; Signature Disclosure</shortDescription>
+        <value>Electronic Record &amp; Signature Disclosure</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Greeting</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Hello {0}. Before you review and sign, please read this disclosure.</shortDescription>
+        <value>Hello {0}. Before you review and sign, please read this disclosure.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Body</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>By selecting &quot;I Agree &amp; Continue&quot; you consent to receive this agreement and sign</shortDescription>
+        <value>By selecting &quot;I Agree &amp; Continue&quot; you consent to receive this agreement and sign it electronically under the U.S. Electronic Signatures in Global and National Commerce Act (ESIGN) and the Uniform Electronic Transactions Act (UETA). Your electronic signature has the same legal effect as a handwritten one.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Paper_Option</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>You may instead decline to sign electronically and ask the sender for a paper co</shortDescription>
+        <value>You may instead decline to sign electronically and ask the sender for a paper copy. Your consent, the time, and technical details of this session are recorded in an audit trail.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Accept</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>I Agree &amp; Continue</shortDescription>
+        <value>I Agree &amp; Continue</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Decline</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Decline</shortDescription>
+        <value>Decline</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Decline_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Decline to sign</shortDescription>
+        <value>Decline to sign</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Decline_Reason</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reason (shared with the sender)</shortDescription>
+        <value>Reason (shared with the sender)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Back</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Back</shortDescription>
+        <value>Back</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Change_Signature</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Change signature</shortDescription>
+        <value>Change signature</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Sign_Here</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sign here</shortDescription>
+        <value>Sign here</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Pad_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Adopt your signature</shortDescription>
+        <value>Adopt your signature</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Pad_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Type, draw or upload your signature. It will be applied to every place marked fo</shortDescription>
+        <value>Type, draw or upload your signature. It will be applied to every place marked for you.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Tab_Type</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Type</shortDescription>
+        <value>Type</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Tab_Draw</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Draw</shortDescription>
+        <value>Draw</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Tab_Upload</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Upload</shortDescription>
+        <value>Upload</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Type_Label</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Full name</shortDescription>
+        <value>Full name</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Type_Style</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Choose a style</shortDescription>
+        <value>Choose a style</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Draw_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Use your mouse, finger or stylus.</shortDescription>
+        <value>Use your mouse, finger or stylus.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Upload_Label</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signature image</shortDescription>
+        <value>Signature image</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Upload_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>PNG or JPG, up to 1 MB. A white background is made transparent.</shortDescription>
+        <value>PNG or JPG, up to 1 MB. A white background is made transparent.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Upload_Invalid</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Please choose a PNG or JPG image of up to 1 MB.</shortDescription>
+        <value>Please choose a PNG or JPG image of up to 1 MB.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Page_Of</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Page {0} of {1}</shortDescription>
+        <value>Page {0} of {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Prev_Page</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Previous page</shortDescription>
+        <value>Previous page</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Next_Page</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Next page</shortDescription>
+        <value>Next page</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Zoom_In</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Zoom in</shortDescription>
+        <value>Zoom in</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Zoom_Out</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Zoom out</shortDescription>
+        <value>Zoom out</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Fit_Page</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fit page</shortDescription>
+        <value>Fit page</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Fit_Width</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Fit width</shortDescription>
+        <value>Fit width</value>
+    </labels>
+    <labels>
+        <fullName>SZ_ReadOnly_Signed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>You signed this document on {0}.</shortDescription>
+        <value>You signed this document on {0}.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_ReadOnly_Pending</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Other parties still need to sign; you will receive the executed agreement by ema</shortDescription>
+        <value>Other parties still need to sign; you will receive the executed agreement by email when everyone has.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_ReadOnly_Completed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>All parties have signed. This is the executed agreement.</shortDescription>
+        <value>All parties have signed. This is the executed agreement.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_ReadOnly_Declined</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Another party declined to sign, so this agreement was not completed.</shortDescription>
+        <value>Another party declined to sign, so this agreement was not completed.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Action</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Assign to someone else</shortDescription>
+        <value>Assign to someone else</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>They will get their own signing link by email, and your link will stop working. </shortDescription>
+        <value>They will get their own signing link by email, and your link will stop working. The sender is told.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Name</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Their full name</shortDescription>
+        <value>Their full name</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Email</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Their email address</shortDescription>
+        <value>Their email address</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Reason</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reason (shared with the sender)</shortDescription>
+        <value>Reason (shared with the sender)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Confirm</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Assign</shortDescription>
+        <value>Assign</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassigned_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Assigned to {0}</shortDescription>
+        <value>Assigned to {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassigned_Message</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>{0} will get their own signing link by email. You can close this window.</shortDescription>
+        <value>{0} will get their own signing link by email. You can close this window.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Invalid</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Please enter the person's full name and a valid email address.</shortDescription>
+        <value>Please enter the person's full name and a valid email address.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Reassign_Same</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Please enter someone else's email address.</shortDescription>
+        <value>Please enter someone else's email address.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Clear</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Clear</shortDescription>
+        <value>Clear</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Cancel</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Cancel</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Adopt_Sign</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Adopt &amp; Sign</shortDescription>
+        <value>Adopt &amp; Sign</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guide_Start_One</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Start Signing (1 spot)</shortDescription>
+        <value>Start Signing (1 spot)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guide_Start_Many</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Start Signing ({0} spots)</shortDescription>
+        <value>Start Signing ({0} spots)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guide_Next</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Next Signature ({0} left)</shortDescription>
+        <value>Next Signature ({0} left)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guide_Finish</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Finish &amp; Submit</shortDescription>
+        <value>Finish &amp; Submit</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Submitting</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Submitting…</shortDescription>
+        <value>Submitting…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_No_Tags_Notice</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No signature fields were marked for you, so one was added at the end of the docu</shortDescription>
+        <value>No signature fields were marked for you, so one was added at the end of the document.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Stamp_Caption</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Printed under each signature inside the PDF. Use Latin-1 characters only (standa</shortDescription>
+        <value>Signed electronically by {0} · {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Invalid_Session</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This signing session is invalid, expired, or has already been completed.</shortDescription>
+        <value>This signing session is invalid, expired, or has already been completed.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Consent_Required</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Please accept the electronic signature disclosure before signing.</shortDescription>
+        <value>Please accept the electronic signature disclosure before signing.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Too_Large</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This document is too large to open in the signing portal. Please contact the sen</shortDescription>
+        <value>This document is too large to open in the signing portal. Please contact the sender.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Invalid_Pdf</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The signed document is not a valid PDF.</shortDescription>
+        <value>The signed document is not a valid PDF.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_No_Signature</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No signature was applied to the document.</shortDescription>
+        <value>No signature was applied to the document.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Generic_Error</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Something went wrong. Please try again.</shortDescription>
+        <value>Something went wrong. Please try again.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recalled_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This signing request was recalled</shortDescription>
+        <value>This signing request was recalled</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Recalled</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The sender recalled this request, so it can no longer be viewed or signed.</shortDescription>
+        <value>The sender recalled this request, so it can no longer be viewed or signed. Contact the sender if you have questions.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Header</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall Envelope</shortDescription>
+        <value>Recall Envelope</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Loading</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Loading</shortDescription>
+        <value>Loading</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall Envelope action: what recalling does</shortDescription>
+        <value>Recalling cancels this envelope. Signing links stop working straight away and nobody else can sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Notify_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>A cancellation email will be sent to:</shortDescription>
+        <value>A cancellation email will be sent to:</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Reason</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reason (optional)</shortDescription>
+        <value>Reason (optional)</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Reason_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Included in the cancellation email and recorded in the audit trail.</shortDescription>
+        <value>Included in the cancellation email and recorded in the audit trail.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Warning</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This cannot be undone. The recall is recorded in the audit trail.</shortDescription>
+        <value>This cannot be undone. The recall is recorded in the audit trail.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Confirm</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall</shortDescription>
+        <value>Recall</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Done_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelope recalled</shortDescription>
+        <value>Envelope recalled</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Done_None</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No signer had been sent the envelope yet, so no email was needed.</shortDescription>
+        <value>No signer had been sent the envelope yet, so no email was needed.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Done_One</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>A cancellation email was sent to 1 signer.</shortDescription>
+        <value>A cancellation email was sent to 1 signer.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Done_Many</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>A cancellation email was sent to {0} signers.</shortDescription>
+        <value>A cancellation email was sent to {0} signers.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Not_Found</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelope not found or not shared with you.</shortDescription>
+        <value>Envelope not found or not shared with you.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Completed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This envelope is already completed, so it can no longer be recalled.</shortDescription>
+        <value>This envelope is already completed, so it can no longer be recalled.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Sealing</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall refused: the envelope is being sealed</shortDescription>
+        <value>Everyone has signed and the envelope is being sealed, so it can no longer be recalled.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Declined</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall refused: a signer declined the envelope</shortDescription>
+        <value>A signer declined this envelope, so it is already closed and cannot be recalled.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Already</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This envelope has already been recalled.</shortDescription>
+        <value>This envelope has already been recalled.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_Status</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall refused: envelope is not out for signature ({0} = its status)</shortDescription>
+        <value>Only envelopes that are out for signature can be recalled (this one is {0}).</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Err_No_Access</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>You need edit access to this envelope to recall it.</shortDescription>
+        <value>You need edit access to this envelope to recall it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Recall_Email_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recalled, but the cancellation email failed ({0} = the error)</shortDescription>
+        <value>The envelope was recalled, but the cancellation email could not be sent: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Create_Envelope</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelopes can only be created by the dispatch action</shortDescription>
+        <value>Create SignZero envelopes with the &quot;Dispatch Document via SignZero&quot; action.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Field_Locked</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This field is maintained by SignZero and cannot be edited.</shortDescription>
+        <value>This field is maintained by SignZero and cannot be edited.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Status_Locked</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelope status cannot be edited by hand; use Recall Envelope</shortDescription>
+        <value>Only SignZero can change envelope status. To cancel an envelope that is out for signature, use the Recall Envelope action.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Envelope_Delete</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sent envelopes cannot be deleted</shortDescription>
+        <value>SignZero envelopes that were sent cannot be deleted; recall them instead. Deleting would remove the audit ledger.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Create_Signer</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signers can only be added by the dispatch action</shortDescription>
+        <value>Add signers with the &quot;Dispatch Document via SignZero&quot; action.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Signer_Locked</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>A signer cannot be changed after their invitation has been sent.</shortDescription>
+        <value>A signer cannot be changed after their invitation has been sent.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Signer_Delete</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Invited signers cannot be deleted</shortDescription>
+        <value>A signer who has been invited cannot be deleted; it would remove their audit trail.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Audit_Insert</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>SignZero audit events can only be written by SignZero.</shortDescription>
+        <value>SignZero audit events can only be written by SignZero.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Guard_Audit_Immutable</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>SignZero audit events are immutable and cannot be edited or deleted.</shortDescription>
+        <value>SignZero audit events are immutable and cannot be edited or deleted.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Send_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Resend failed ({0} = the error)</shortDescription>
+        <value>The invitation could not be sent: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Signer_Not_Found</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signer not found or not shared with you.</shortDescription>
+        <value>Signer not found or not shared with you.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Not_Found</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelope not found or not shared with you.</shortDescription>
+        <value>Envelope not found or not shared with you.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Status</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Resend refused: envelope is not out for signature ({0} = its status)</shortDescription>
+        <value>Only envelopes that are out for signature can be re-sent (this one is {0}).</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Nobody_Waiting</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Nobody on this envelope is waiting for an invitation.</shortDescription>
+        <value>Nobody on this envelope is waiting for an invitation.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Resend_Err_Not_Due</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Resend refused: this signer is done or it is not their turn</shortDescription>
+        <value>This signer has already signed, declined or been reassigned, or it is not their turn yet.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_No_Permission</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>You do not have permission to send documents with SignZero.</shortDescription>
+        <value>You do not have permission to send documents with SignZero.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Not_Pdf</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Not a PDF ({0} = the file type)</shortDescription>
+        <value>SignZero only supports PDF files (got {0}).</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Too_Large</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>PDF too large ({0} = its size, {1} = the limit, in KB)</shortDescription>
+        <value>The PDF is {0} KB; the SignZero limit is {1} KB.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_File_Not_Found</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>File not found ({0} = the file Ids)</shortDescription>
+        <value>File not found or not shared with you: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Too_Much_Data</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Too much PDF data in one call</shortDescription>
+        <value>Too much PDF data in one call; dispatch fewer documents at a time.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_No_Signer</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>At least one signer is required.</shortDescription>
+        <value>At least one signer is required.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Signer_Name</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Every signer needs a name.</shortDescription>
+        <value>Every signer needs a name.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Signer_Email</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Invalid signer email ({0} = the address)</shortDescription>
+        <value>Invalid signer email: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Signer_Role</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Unknown signer role ({0} = the role, {1} = the allowed roles)</shortDescription>
+        <value>Unknown signer role &quot;{0}&quot;. Use one of: {1}, or add it to the SignZero Signer Role picklist value set.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Site_Not_Found</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The signing site could not be found</shortDescription>
+        <value>SignZero signing site not found. Publish an Experience site at /esign or set Site_Base_Url__c on SignZero_Setting__mdt.Default.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Invite_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Next invitation failed ({0} = the error); shown in Error Message</shortDescription>
+        <value>Could not invite the next signer: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Seal_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sealing failed ({0} = the error); shown in Error Message</shortDescription>
+        <value>Sealing failed: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Title_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send for Signature flow: document title field help</shortDescription>
+        <value>The title signers see on the signing page, in their emails and on the Certificate of Completion, e.g. &quot;Master Services Agreement - Acme&quot;. Leave blank to use the file name.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Error_Heading</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send for Signature flow: error heading</shortDescription>
+        <value>The document could not be sent.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Error_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send for Signature flow: what to do after an error</shortDescription>
+        <value>Nothing was created. Go back to correct the details, or contact your Salesforce administrator.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Sent_Heading</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send for Signature flow: confirmation heading</shortDescription>
+        <value>Sent for signature.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Sent_Message</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Confirmation ({0} = envelope, {1} = document, {2} = signer count)</shortDescription>
+        <value>Envelope {0}: &quot;{1}&quot; is on its way to {2} signer(s). You will get a notification as each person signs, and the executed agreement and Certificate of Completion will be filed on this record.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Flow_Upload_Tip</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send for Signature flow: shown when the record has no PDF</shortDescription>
+        <value>There is no PDF on this record yet. Upload the document to send, then select Next.</value>
+    </labels>
+</CustomLabels>

@@ -1,0 +1,17 @@
+<!doctype html>
+<!--
+    SignZero PDF host. The signing portal loads this page in a hidden iframe on the same site, so the PDF work runs
+    outside Lightning Web Security: PDF.js gets its Web Worker and canvas runs at full speed. It has no access to
+    Salesforce data; it only transforms the PDF bytes the portal posts to it and answers same-origin messages only.
+-->
+<html data-signzero-host>
+    <head>
+        <meta charset="utf-8" />
+        <title>SignZero PDF engine</title>
+        <!-- engine.js starts PDF.js's worker as soon as it runs; it needs pdf-lib only when called, so pdf-lib comes last. -->
+        <script src="pdf.min.js"></script>
+        <script src="engine.js"></script>
+        <script src="pdf-lib.min.js"></script>
+    </head>
+    <body></body>
+</html>

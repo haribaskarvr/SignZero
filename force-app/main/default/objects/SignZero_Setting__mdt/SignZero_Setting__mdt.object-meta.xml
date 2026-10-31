@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Branding, signing-site URL and security settings for SignZero. The record named Default is used.</description>
+    <label>SignZero Setting</label>
+    <pluralLabel>SignZero Settings</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

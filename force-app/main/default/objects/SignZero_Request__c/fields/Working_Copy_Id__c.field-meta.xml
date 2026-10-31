@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Working_Copy_Id__c</fullName>
+    <description>Attachment on this envelope holding the latest (partially signed) PDF shown to the next signer. Attachments are used because the site guest user cannot read Salesforce Files.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Attachment holding the latest partly signed PDF that the next signer sees. Used internally by the signing portal.</inlineHelpText>
+    <label>Working Copy Id</label>
+    <length>18</length>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

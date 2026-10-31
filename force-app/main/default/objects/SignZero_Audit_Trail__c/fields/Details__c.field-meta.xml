@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Details__c</fullName>
+    <description>Details</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Extra detail, such as who an invitation was emailed to or the reason for a reassignment.</inlineHelpText>
+    <label>Details</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>
