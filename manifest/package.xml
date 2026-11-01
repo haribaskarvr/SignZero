@@ -304,6 +304,7 @@
     <types>
         <members>SignZero_Home</members>
         <members>SignZero_Recipient_Record_Page</members>
+        <members>Signature_Request_Record_Page</members>
         <name>FlexiPage</name>
     </types>
     <types>
