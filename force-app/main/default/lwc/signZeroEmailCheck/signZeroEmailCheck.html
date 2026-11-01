@@ -1,0 +1,36 @@
+<template>
+    <article class="slds-card">
+        <div class="slds-card__header">
+            <h2 class="slds-card__header-title">{labels.title}</h2>
+        </div>
+        <div class="slds-card__body slds-card__body_inner">
+            <template lwc:if={isLoading}>
+                <p class="slds-text-color_weak">{labels.loading}</p>
+            </template>
+            <template lwc:if={isOk}>
+                <p>
+                    <lightning-icon icon-name="utility:success" variant="success" size="x-small" alternative-text="success"
+                        class="slds-m-right_x-small"></lightning-icon>
+                    {labels.ok}
+                </p>
+            </template>
+            <template lwc:if={hasIssues}>
+                <p class="slds-m-bottom_small">{labels.intro}</p>
+                <ul>
+                    <template for:each={issues} for:item="issue">
+                        <li key={issue.key} class="slds-media slds-media_small slds-m-bottom_small">
+                            <div class="slds-media__figure">
+                                <lightning-icon icon-name={issue.iconName} variant={issue.iconVariant} size="x-small"
+                                    alternative-text={issue.alternativeText}></lightning-icon>
+                            </div>
+                            <div class="slds-media__body">{issue.message}</div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:if={errorMessage}>
+                <p class="slds-text-color_error" role="alert">{errorMessage}</p>
+            </template>
+        </div>
+    </article>
+</template>

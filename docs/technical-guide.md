@@ -154,12 +154,18 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 | Token Validity Days | How long a signing link works (default 7) |
 | Max Document Size KB | Largest PDF accepted (default 2000) |
 | Allow Reassignment | Lets signers delegate to someone else (default on) |
-| Org Wide Email Address | Sender address for SignZero emails |
+| Org Wide Email Address | Sender address for SignZero emails. Set it: emails sent in the background (later signers, completed agreements) run as the Automated Process user and need a verified org-wide address |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
 
 The portal's colours, logo and company name can also be set per page in Experience Builder; those win over the
 custom metadata.
+
+**Email setup check.** Salesforce accepts an email from an unverified sender and drops it later without an error,
+so SignZero checks for the usual causes: deliverability off, the org-wide address missing or unverified, or (with no
+org-wide address) the sender's own email unverified. Send for Signature shows a warning screen before sending when
+invitations would not arrive, and the SignZero Home page shows the current status (`SignZeroEmailCheck`,
+`signZeroEmailCheck`).
 
 **`SignZero_Diagnostics__c`** (Setup → Custom Settings): **Performance Logs** writes the signing page's step timings
 to the browser console. Set it org-wide, or only on the site guest profile to diagnose signers.

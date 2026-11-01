@@ -1127,4 +1127,34 @@ private class SignZeroTest {
       html.contains('Organisation Digital Signature')
     );
   }
+
+  @IsTest
+  static void emailCheckFlagsAMissingOrgWideAddress() {
+    useTestSettings();
+    SignZeroSettings.cached.Org_Wide_Email_Address__c = 'nobody@example.com';
+    List<SignZeroEmailCheck.Issue> issues = SignZeroEmailCheck.check();
+    Assert.isFalse(issues.isEmpty());
+    Assert.areEqual(SignZeroEmailCheck.ERROR, issues[0].severity);
+    Assert.isTrue(issues[0].message.contains('nobody@example.com'), issues[0].message);
+    SignZeroEmailCheck.FlowResult result = SignZeroEmailCheck.checkForFlow()[0];
+    Assert.isTrue(result.hasErrors);
+    Assert.isTrue(result.hasIssues);
+  }
+
+  @IsTest
+  static void emailCheckWarnsWithoutAnOrgWideAddress() {
+    useTestSettings();
+    SignZeroSettings.cached.Org_Wide_Email_Address__c = null;
+    List<SignZeroEmailCheck.Issue> issues = SignZeroEmailCheck.check();
+    SignZeroEmailCheck.Issue last = issues[issues.size() - 1];
+    Assert.areEqual(SignZeroEmailCheck.WARNING, last.severity);
+    Assert.areEqual(System.Label.SZ_Email_Check_No_Owea, last.message);
+    for (SignZeroEmailCheck.Issue issue : issues) {
+      // Errors come before warnings.
+      if (issue !== last) {
+        Assert.areEqual(SignZeroEmailCheck.ERROR, issue.severity);
+      }
+    }
+    Assert.isTrue(SignZeroEmailCheck.checkForFlow()[0].hasIssues);
+  }
 }

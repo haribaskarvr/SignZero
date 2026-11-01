@@ -992,4 +992,76 @@
         <shortDescription>Send for Signature flow: shown when the record has no PDF</shortDescription>
         <value>There is no PDF on this record yet. Upload the document to send, then select Next.</value>
     </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: card title</shortDescription>
+        <value>Email Setup</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Loading</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: shown while checking</shortDescription>
+        <value>Checking email setup…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Ok</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: no problems found</shortDescription>
+        <value>Email setup looks good: SignZero emails can be delivered.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: introduction above the problems</shortDescription>
+        <value>SignZero emails may not be delivered. Salesforce accepts them without an error and drops them later, so fix these first.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Deliverability</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: deliverability off or daily limit used up</shortDescription>
+        <value>Email deliverability is off or today’s email limit is used up. In Setup → Deliverability, set Access level to All email.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Owea_Missing</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: configured org-wide address does not exist ({0} = address)</shortDescription>
+        <value>The org-wide email address {0} in SignZero Settings does not exist. Add it in Setup → Organization-Wide Addresses, or correct Org Wide Email Address in SignZero Settings.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Owea_Unverified</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: org-wide address not verified ({0} = address)</shortDescription>
+        <value>The org-wide email address {0} is not verified yet. Open the verification email Salesforce sent to that address and click the link.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_User_Unverified</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: sender&apos;s email not verified ({0} = address)</shortDescription>
+        <value>Your email address {0} is not verified, so invitations you send will not be delivered. Verify it under your profile picture → Settings → Personal Information, or set an org-wide email address in SignZero Settings.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_No_Owea</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: no org-wide address set</shortDescription>
+        <value>No org-wide email address is set in SignZero Settings. Invitations come from each sender’s own address, and emails SignZero sends in the background (to later signers and with completed agreements) may not be delivered. Add a verified address in Setup → Organization-Wide Addresses and enter it in SignZero Settings.</value>
+    </labels>
 </CustomLabels>

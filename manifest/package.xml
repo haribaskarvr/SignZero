@@ -3,6 +3,7 @@
     <types>
         <members>SignZeroAuditService</members>
         <members>SignZeroCertificateController</members>
+        <members>SignZeroEmailCheck</members>
         <members>SignZeroGatewayController</members>
         <members>SignZeroInvitationService</members>
         <members>SignZeroNotifier</members>
@@ -126,6 +127,15 @@
         <members>SZ_Done_Pending_Message</members>
         <members>SZ_Done_Title</members>
         <members>SZ_Draw_Help</members>
+        <members>SZ_Email_Check_Deliverability</members>
+        <members>SZ_Email_Check_Intro</members>
+        <members>SZ_Email_Check_Loading</members>
+        <members>SZ_Email_Check_No_Owea</members>
+        <members>SZ_Email_Check_Ok</members>
+        <members>SZ_Email_Check_Owea_Missing</members>
+        <members>SZ_Email_Check_Owea_Unverified</members>
+        <members>SZ_Email_Check_Title</members>
+        <members>SZ_Email_Check_User_Unverified</members>
         <members>SZ_Err_Consent_Required</members>
         <members>SZ_Err_Invalid_Pdf</members>
         <members>SZ_Err_Invalid_Session</members>
@@ -304,7 +314,7 @@
     <types>
         <members>SignZero_Home</members>
         <members>SignZero_Recipient_Record_Page</members>
-        <members>Signature_Request_Record_Page</members>
+        <members>SignZero_Request_Record_Page</members>
         <name>FlexiPage</name>
     </types>
     <types>
@@ -325,6 +335,7 @@
         <name>Layout</name>
     </types>
     <types>
+        <members>signZeroEmailCheck</members>
         <members>signZeroPortal</members>
         <members>signZeroRecall</members>
         <members>signZeroResend</members>

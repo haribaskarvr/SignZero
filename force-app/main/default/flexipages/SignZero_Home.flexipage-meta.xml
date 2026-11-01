@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>SignZero app home: email setup status and the envelope metrics dashboard.</description>
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
@@ -22,8 +23,25 @@
         <name>top</name>
         <type>Region</type>
     </flexiPageRegions>
+    <flexiPageRegions>
+        <name>bottomLeft</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <name>bottomRight</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>signZeroEmailCheck</componentName>
+                <identifier>signzero_email_check</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>sidebar</name>
+        <type>Region</type>
+    </flexiPageRegions>
     <masterLabel>SignZero Home</masterLabel>
-    <description>SignZero app home: envelope metrics dashboard.</description>
     <template>
         <name>home:desktopTemplate</name>
     </template>
