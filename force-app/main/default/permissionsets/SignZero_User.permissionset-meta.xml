@@ -17,6 +17,10 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>SignZeroContactPicker</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SignZeroEmailCheck</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -76,6 +80,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>SignZero_Recipient__c.Auth_Method__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>SignZero_Recipient__c.Contact__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

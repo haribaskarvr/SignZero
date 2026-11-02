@@ -514,6 +514,18 @@
                 </value>
             </inputParameters>
             <inputParameters>
+                <name>recordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>accountId</name>
+                <value>
+                    <elementReference>accountId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
                 <name>signers</name>
                 <value>
                     <elementReference>signers</elementReference>
@@ -763,6 +775,14 @@
         </connector>
     </start>
     <status>Active</status>
+    <variables>
+        <description>Optional. An account whose contacts are offered as signers too, for records that reach their account indirectly (for example a custom object that looks up an Opportunity). The record&apos;s own Account and Contact lookups are used without it.</description>
+        <name>accountId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <description>True when every signer&apos;s role has a {{sig:Role}} tag in the PDF, as read on the Add Signers screen.</description>
         <name>allRolesTagged</name>

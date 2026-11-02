@@ -570,6 +570,191 @@ private class SignZeroTest {
   }
 
   @IsTest
+  static void emailTemplatesReplaceTheBuiltInEmails() {
+    // Templates are setup objects; inserting them as another user keeps them apart from the envelope DML.
+    System.runAs(new User(Id = UserInfo.getUserId())) {
+      insert new List<EmailTemplate>{
+        new EmailTemplate(
+          DeveloperName = 'SZ_Test_Invite',
+          Name = 'SZ Test Invite',
+          TemplateType = 'text',
+          FolderId = UserInfo.getUserId(),
+          IsActive = true,
+          Subject = 'Please sign [[DocumentName]]',
+          Body = 'Hi [[SignerName]], open [[SigningLink]] before [[ExpiresOn]]. [[Unknown]]'
+        ),
+        new EmailTemplate(
+          DeveloperName = 'SZ_Test_No_Link',
+          Name = 'SZ Test No Link',
+          TemplateType = 'text',
+          FolderId = UserInfo.getUserId(),
+          IsActive = true,
+          Subject = 'Reminder',
+          Body = 'Hi [[SignerName]], please sign.'
+        )
+      };
+    }
+    SignZeroEmailTemplates.templateNames = new Map<String, String>{
+      SignZeroConstants.EMAIL_INVITATION => 'SZ_Test_Invite',
+      // Without [[SigningLink]] the signer could not act, so the built-in reminder is sent. The test settings send
+      // one reminder, which is also the final one.
+      SignZeroConstants.EMAIL_FINAL_REMINDER => 'SZ_Test_No_Link',
+      SignZeroConstants.EMAIL_RECALL => 'No_Such_Template'
+    };
+
+    Id requestId = dispatchTwoSigners();
+    Messaging.SingleEmailMessage invite = SignZeroNotifier.sentInTest[
+      SignZeroNotifier.sentInTest.size() - 1
+    ];
+    Assert.areEqual('Please sign Master Services Agreement', invite.getSubject());
+    Assert.isTrue(
+      invite.getPlainTextBody().startsWith('Hi Casey Customer, open https://acme.my.site.com/esign?token='),
+      invite.getPlainTextBody()
+    );
+    Assert.isFalse(invite.getPlainTextBody().contains('[[ExpiresOn]]'));
+    Assert.isTrue(invite.getPlainTextBody().contains('[[Unknown]]'), 'unknown placeholders are left alone');
+
+    SignZeroNotifier.sentInTest.clear();
+    SignZeroInvitationService.sendReminders(new Set<Id>{ recipient(requestId, 1).Id });
+    Assert.areEqual(
+      String.format(System.Label.SZ_Mail_Final_Reminder_Subject, new List<Object>{ 'Master Services Agreement' }),
+      SignZeroNotifier.sentInTest[0].getSubject()
+    );
+
+    Assert.areEqual(
+      '<a href="https://x/?t=1&amp;b=2">A &amp; B</a>',
+      SignZeroEmailTemplates.fill(
+        '<a href="[[SigningLink]]">[[SignerName]]</a>',
+        new Map<String, String>{ 'SigningLink' => 'https://x/?t=1&b=2', 'SignerName' => 'A & B' },
+        true
+      )
+    );
+  }
+
+  @IsTest
+  static void contactPickerOffersTheRecordsContacts() {
+    Account acct = [SELECT Id FROM Account WHERE Name = 'Acme'];
+    Account other = [SELECT Id FROM Account WHERE Name = 'Acme Holdings'];
+    Contact casey = new Contact(FirstName = 'Casey', LastName = 'Customer', Email = 'casey@example.com', AccountId = acct.Id);
+    Contact noEmail = new Contact(FirstName = 'Nora', LastName = 'Noemail', AccountId = acct.Id);
+    Contact elsewhere = new Contact(FirstName = 'Eli', LastName = 'Elsewhere', Email = 'eli@example.com', AccountId = other.Id);
+    insert new List<Contact>{ casey, noEmail, elsewhere };
+    Opportunity opp = new Opportunity(Name = 'Deal', StageName = 'Prospecting', CloseDate = Date.today(), AccountId = other.Id);
+    insert opp;
+    insert new OpportunityContactRole(OpportunityId = opp.Id, ContactId = casey.Id);
+
+    Assert.areEqual(new List<Id>{ casey.Id }, ids(SignZeroContactPicker.relatedContacts(acct.Id, null)), 'contacts without email are left out');
+    // An Opportunity's contact roles and the contacts of its account (and of their accounts).
+    Assert.areEqual(
+      new Set<Id>{ casey.Id, elsewhere.Id },
+      new Set<Id>(ids(SignZeroContactPicker.relatedContacts(opp.Id, null)))
+    );
+    Assert.areEqual(new List<Id>{ casey.Id }, ids(SignZeroContactPicker.relatedContacts(casey.Id, null)));
+    Assert.isTrue(SignZeroContactPicker.relatedContacts(null, null).isEmpty());
+    // The flow's optional accountId adds that account's contacts to the record's own.
+    Assert.areEqual(new List<Id>{ elsewhere.Id }, ids(SignZeroContactPicker.relatedContacts(null, other.Id)));
+    Assert.areEqual(
+      new Set<Id>{ casey.Id, elsewhere.Id },
+      new Set<Id>(ids(SignZeroContactPicker.relatedContacts(acct.Id, other.Id)))
+    );
+    try {
+      SignZeroContactPicker.relatedContacts(null, casey.Id);
+      Assert.fail('accountId must be an Account');
+    } catch (AuraHandledException e) {
+      Assert.isNotNull(e);
+    }
+    Assert.isTrue(SignZeroContactPicker.searchContacts('E').isEmpty(), 'one letter is too short');
+    Assert.areEqual(new List<Id>{ elsewhere.Id }, ids(SignZeroContactPicker.searchContacts('eli@')));
+    Assert.isTrue(SignZeroContactPicker.searchContacts('100%').isEmpty(), 'wildcards are searched for literally');
+
+    // The signer keeps a link to the Contact they were chosen from.
+    useTestSettings();
+    ContentVersion cv = [SELECT ContentDocumentId FROM ContentVersion LIMIT 1];
+    SignZeroOrchestrator.DispatchRequest req = new SignZeroOrchestrator.DispatchRequest();
+    req.sourceRecordId = acct.Id;
+    req.contentDocumentId = cv.ContentDocumentId;
+    SignZeroSigner chosen = new SignZeroSigner('Casey Customer', 'casey@example.com', 'Customer', 1);
+    chosen.contactId = casey.Id;
+    req.additionalSigners = new List<SignZeroSigner>{ chosen };
+    Id requestId = SignZeroOrchestrator.execute(new List<SignZeroOrchestrator.DispatchRequest>{ req })[0].signatureRequestId;
+    Assert.areEqual(
+      casey.Id,
+      [SELECT Contact__c FROM SignZero_Recipient__c WHERE SignZero_Request__c = :requestId WITH SYSTEM_MODE].Contact__c
+    );
+  }
+
+  private static List<Id> ids(List<SignZeroContactPicker.ContactOption> options) {
+    List<Id> result = new List<Id>();
+    for (SignZeroContactPicker.ContactOption o : options) {
+      result.add(o.id);
+    }
+    return result;
+  }
+
+  @IsTest
+  static void builtInEmailsAreSentWithoutTemplates() {
+    SignZeroEmailTemplates.templateNames = new Map<String, String>();
+    Id requestId = dispatchTwoSigners();
+    Assert.areEqual(
+      String.format(System.Label.SZ_Mail_Invite_Subject, new List<Object>{ 'Master Services Agreement' }),
+      SignZeroNotifier.sentInTest[SignZeroNotifier.sentInTest.size() - 1].getSubject()
+    );
+    Id signerId = recipient(requestId, 1).Id;
+    SignZeroInvitationService.sendReminders(new Set<Id>{ signerId });
+    plantToken(signerId, TOKEN_A);
+    requirePasscode(signerId);
+    SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+    Assert.areEqual(
+      String.format(System.Label.SZ_Mail_Passcode_Subject, new List<Object>{ 'Master Services Agreement' }),
+      SignZeroNotifier.sentInTest[SignZeroNotifier.sentInTest.size() - 1].getSubject()
+    );
+    SignZeroNotifier.sendExecutedCopies(
+      [SELECT Id, Name, Document_Name__c FROM SignZero_Request__c WHERE Id = :requestId],
+      [SELECT Id, Name, Email__c FROM SignZero_Recipient__c WHERE SignZero_Request__c = :requestId],
+      Blob.valueOf('%PDF-1.4 executed'),
+      Blob.valueOf('%PDF-1.4 certificate'),
+      null
+    );
+    Assert.areEqual(
+      String.format(System.Label.SZ_Mail_Completed_Subject, new List<Object>{ 'Master Services Agreement' }),
+      SignZeroNotifier.sentInTest[SignZeroNotifier.sentInTest.size() - 1].getSubject()
+    );
+    SignZeroRecallController.recall(requestId, 'Wrong version');
+    Messaging.SingleEmailMessage recall = SignZeroNotifier.sentInTest[SignZeroNotifier.sentInTest.size() - 1];
+    Assert.areEqual(
+      String.format(System.Label.SZ_Mail_Recall_Subject, new List<Object>{ 'Master Services Agreement' }),
+      recall.getSubject()
+    );
+    Assert.isTrue(recall.getPlainTextBody().contains('Wrong version'));
+  }
+
+  @IsTest
+  static void defaultTemplatesCarryTheLinkAndTheCode() {
+    // The shipped SignZero_Email_Template records point at the templates in the SignZero Emails folder.
+    Id requestId = dispatchTwoSigners();
+    Messaging.SingleEmailMessage invite = SignZeroNotifier.sentInTest[
+      SignZeroNotifier.sentInTest.size() - 1
+    ];
+    Assert.areEqual('Action Required: Review & Sign Master Services Agreement', invite.getSubject());
+    Assert.isTrue(invite.getHtmlBody().contains('<a href="https://acme.my.site.com/esign?token='), invite.getHtmlBody());
+    Assert.isTrue(invite.getHtmlBody().contains('Hello Casey Customer,'));
+    Assert.isTrue(invite.getHtmlBody().contains('expires in 3 days'));
+    Assert.isFalse(invite.getHtmlBody().contains('[['), 'every placeholder is filled in');
+    Assert.isFalse(invite.getPlainTextBody().contains('[['));
+
+    Id signerId = recipient(requestId, 1).Id;
+    plantToken(signerId, TOKEN_A);
+    requirePasscode(signerId);
+    SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+    Messaging.SingleEmailMessage code = SignZeroNotifier.sentInTest[
+      SignZeroNotifier.sentInTest.size() - 1
+    ];
+    Assert.areEqual('Your code to open Master Services Agreement', code.getSubject());
+    Assert.isTrue(Pattern.compile('>\\d{6}<').matcher(code.getHtmlBody()).find(), code.getHtmlBody());
+    Assert.isFalse(code.getHtmlBody().contains('[['));
+  }
+
+  @IsTest
   static void newLinkStartsThePasscodeLimitsAgain() {
     Id requestId = dispatchTwoSigners();
     Id signerId = recipient(requestId, 1).Id;

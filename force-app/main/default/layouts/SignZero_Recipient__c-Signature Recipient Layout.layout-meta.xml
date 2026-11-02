@@ -19,6 +19,10 @@
                 <field>Email__c</field>
             </layoutItems>
             <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>Contact__c</field>
+            </layoutItems>
+            <layoutItems>
                 <behavior>Edit</behavior>
                 <field>Signer_Role__c</field>
             </layoutItems>

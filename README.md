@@ -21,7 +21,7 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 ## How it works
 
 1. **Send.** Click **Send for Signature** on an Account or Opportunity (or call it from any Flow), pick the PDF, and
-   add the signers and their order, then drag each signer onto the pages where they sign.
+   pick the signers from the record's contacts (or add anyone else), set their roles and order, then drag each signer onto the pages where they sign.
 2. **Sign.** Each signer gets a personal link, reviews the document, accepts the electronic records disclosure, and
    signs by typing, drawing or uploading their signature.
 3. **Done.** When everyone has signed, SignZero seals the document, appends the Certificate of Completion, files it
@@ -42,6 +42,7 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 - Bell notifications for the sender at every step, including when a signing link expires unsigned
 - Reports and a dashboard for envelopes, turnaround and outstanding signatures
 - Your branding: company name, logo and colours on the signing page and in emails
+- Signer emails built from Salesforce email templates you can edit
 - Every signer-facing word in Custom Labels, ready to reword or translate
 
 ## Get started

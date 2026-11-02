@@ -11,6 +11,8 @@
         <targetConfig targets="lightning__FlowScreen">
             <property name="signers" type="apex://SignZeroSigner[]" label="Signers"/>
             <property name="contentDocumentId" type="String" label="Content Document Id (PDF)" role="inputOnly"/>
+            <property name="recordId" type="String" label="Record Id" description="The record the envelope is sent from; its contacts are offered as signers." role="inputOnly"/>
+            <property name="accountId" type="String" label="Account Id" description="Optional. An account whose contacts are offered as signers too, for records that reach their account indirectly." role="inputOnly"/>
             <property name="allRolesTagged" type="Boolean" label="Every Role Has a Tag" role="outputOnly"/>
         </targetConfig>
     </targetConfigs>

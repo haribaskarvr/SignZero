@@ -6,7 +6,9 @@
         <members>SignZeroBrandingController</members>
         <members>SignZeroCertificateController</members>
         <members>SignZeroConstants</members>
+        <members>SignZeroContactPicker</members>
         <members>SignZeroEmailCheck</members>
+        <members>SignZeroEmailTemplates</members>
         <members>SignZeroFieldLayout</members>
         <members>SignZeroGatewayController</members>
         <members>SignZeroInvitationService</members>
@@ -63,6 +65,7 @@
         <members>SignZero_Event__e.Recipient_Id__c</members>
         <members>SignZero_Event__e.SignZero_Request_Id__c</members>
         <members>SignZero_Recipient__c.Auth_Method__c</members>
+        <members>SignZero_Recipient__c.Contact__c</members>
         <members>SignZero_Recipient__c.Consented_At__c</members>
         <members>SignZero_Recipient__c.Decline_Reason__c</members>
         <members>SignZero_Recipient__c.Delegated_From__c</members>
@@ -86,6 +89,13 @@
         <members>SignZero_Recipient__c.Token_Hash__c</members>
         <members>SignZero_Recipient__c.User_Agent__c</members>
         <members>SignZero_Recipient__c.Viewed_At__c</members>
+        <members>SignZero_Recipient__c.Passcode_Attempts__c</members>
+        <members>SignZero_Recipient__c.Passcode_Expires_At__c</members>
+        <members>SignZero_Recipient__c.Passcode_Hash__c</members>
+        <members>SignZero_Recipient__c.Passcode_Sends__c</members>
+        <members>SignZero_Recipient__c.Passcode_Sent_At__c</members>
+        <members>SignZero_Recipient__c.Passcode_Session_Hash__c</members>
+        <members>SignZero_Recipient__c.Passcode_Verified_At__c</members>
         <members>SignZero_Request__c.Certificate_Version_Id__c</members>
         <members>SignZero_Request__c.Combined_Document_Version_Id__c</members>
         <members>SignZero_Request__c.Completed_At__c</members>
@@ -120,8 +130,10 @@
         <members>SignZero_Setting__mdt.Reminder_Repeat_Days__c</members>
         <members>SignZero_Setting__mdt.Reminder_Schedule__c</members>
         <members>SignZero_Setting__mdt.Require_Consent_Before_Viewing__c</members>
+        <members>SignZero_Setting__mdt.Require_Passcode__c</members>
         <members>SignZero_Setting__mdt.Site_Base_Url__c</members>
         <members>SignZero_Setting__mdt.Token_Validity_Days__c</members>
+        <members>SignZero_Email_Template__mdt.Template_Name__c</members>
         <name>CustomField</name>
     </types>
     <types>
@@ -358,6 +370,12 @@
         <name>CustomLabels</name>
     </types>
     <types>
+        <members>SignZero_Email_Template.Completed</members>
+        <members>SignZero_Email_Template.Final_Reminder</members>
+        <members>SignZero_Email_Template.Invitation</members>
+        <members>SignZero_Email_Template.Passcode</members>
+        <members>SignZero_Email_Template.Recall</members>
+        <members>SignZero_Email_Template.Reminder</members>
         <members>SignZero_Setting.Default</members>
         <name>CustomMetadata</name>
     </types>
@@ -366,9 +384,20 @@
         <name>CustomNotificationType</name>
     </types>
     <types>
+        <members>SignZero_Emails</members>
+        <members>SignZero_Emails/SignZero_Completed</members>
+        <members>SignZero_Emails/SignZero_Final_Reminder</members>
+        <members>SignZero_Emails/SignZero_Invitation</members>
+        <members>SignZero_Emails/SignZero_Passcode</members>
+        <members>SignZero_Emails/SignZero_Recall</members>
+        <members>SignZero_Emails/SignZero_Reminder</members>
+        <name>EmailTemplate</name>
+    </types>
+    <types>
         <members>SignZero_Audit_Trail__c</members>
         <members>SignZero_Branding__c</members>
         <members>SignZero_Diagnostics__c</members>
+        <members>SignZero_Email_Template__mdt</members>
         <members>SignZero_Encryption__c</members>
         <members>SignZero_Event__e</members>
         <members>SignZero_Recipient__c</members>

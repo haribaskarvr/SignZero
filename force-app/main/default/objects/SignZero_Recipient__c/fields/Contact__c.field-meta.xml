@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contact__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The Contact this signer was chosen from when the envelope was sent.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>The Contact this signer was chosen from when the envelope was sent; blank when the sender typed the signer in. Set by SignZero.</inlineHelpText>
+    <label>Contact</label>
+    <referenceTo>Contact</referenceTo>
+    <relationshipLabel>Signature Recipients</relationshipLabel>
+    <relationshipName>SignZero_Recipients</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

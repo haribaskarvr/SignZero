@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <available>true</available>
+    <description>SignZero completed email. Edit freely, or clone it and set the copy in SignZero Email Templates. Keep the [[...]] placeholders SignZero fills in; see the technical guide.</description>
+    <encodingKey>UTF-8</encodingKey>
+    <name>SignZero Completed</name>
+    <style>none</style>
+    <subject>Completed: [[DocumentName]]</subject>
+    <textOnly>All parties have signed “[[DocumentName]]” (envelope [[EnvelopeNumber]]).
+
+The executed agreement and its Certificate of Completion are attached for your records.
+
+[[CompanyName]]</textOnly>
+    <type>custom</type>
+    <uiType>Aloha</uiType>
+</EmailTemplate>

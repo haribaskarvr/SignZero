@@ -158,6 +158,7 @@ public with sharing class SignZeroOrchestrator {
             SignZero_Request__c = envelopes[i].Id,
             Name = s.name.left(80),
             Email__c = s.email,
+            Contact__c = s.contactId,
             Signer_Role__c = s.role,
             Routing_Order__c = s.routingOrder,
             List_Order__c = s.routingOrder,
@@ -284,14 +285,14 @@ public with sharing class SignZeroOrchestrator {
     if (req.additionalSigners != null) {
       Integer nextOrder = signers.size() + 1;
       for (SignZeroSigner s : req.additionalSigners) {
-        signers.add(
-          new SignZeroSigner(
-            s.name,
-            s.email,
-            s.role,
-            s.routingOrder != null ? s.routingOrder : nextOrder
-          )
+        SignZeroSigner copy = new SignZeroSigner(
+          s.name,
+          s.email,
+          s.role,
+          s.routingOrder != null ? s.routingOrder : nextOrder
         );
+        copy.contactId = s.contactId;
+        signers.add(copy);
         nextOrder++;
       }
     }

@@ -89,6 +89,40 @@ public inherited sharing class SignZeroConstants {
   /** @description How long a correct code keeps the signer verified in that browser tab. */
   public static final Integer PASSCODE_SESSION_HOURS = 12;
 
+  // ---------- Email templates (SignZeroEmailTemplates) ----------
+  /** @description Signer emails: the DeveloperName of each SignZero_Email_Template__mdt record. */
+  public static final String EMAIL_INVITATION = 'Invitation';
+  public static final String EMAIL_REMINDER = 'Reminder';
+  public static final String EMAIL_FINAL_REMINDER = 'Final_Reminder';
+  public static final String EMAIL_PASSCODE = 'Passcode';
+  public static final String EMAIL_RECALL = 'Recall';
+  public static final String EMAIL_COMPLETED = 'Completed';
+
+  /** @description Placeholders, written [[Name]] in a template and filled in by string replacement. */
+  public static final String PLACEHOLDER_SIGNER_NAME = 'SignerName';
+  public static final String PLACEHOLDER_DOCUMENT_NAME = 'DocumentName';
+  public static final String PLACEHOLDER_ENVELOPE_NUMBER = 'EnvelopeNumber';
+  public static final String PLACEHOLDER_COMPANY_NAME = 'CompanyName';
+  /** @description The company logo as an HTML image, or nothing when no https logo is set. */
+  public static final String PLACEHOLDER_LOGO = 'Logo';
+  public static final String PLACEHOLDER_SIGNING_LINK = 'SigningLink';
+  public static final String PLACEHOLDER_EXPIRES_ON = 'ExpiresOn';
+  public static final String PLACEHOLDER_VALID_DAYS = 'ValidDays';
+  /** @description A sentence saying earlier links stopped working, on reminders that carry a new link; else nothing. */
+  public static final String PLACEHOLDER_NEW_LINK_NOTE = 'NewLinkNote';
+  public static final String PLACEHOLDER_PASSCODE = 'Passcode';
+  public static final String PLACEHOLDER_PASSCODE_MINUTES = 'PasscodeMinutes';
+  /** @description "Reason: ..." when the sender gave one; else nothing. */
+  public static final String PLACEHOLDER_RECALL_REASON = 'RecallReason';
+
+  /** @description The placeholder an email is useless without; a template missing it is not used. */
+  public static final Map<String, String> EMAIL_REQUIRED_PLACEHOLDER = new Map<String, String>{
+    EMAIL_INVITATION => PLACEHOLDER_SIGNING_LINK,
+    EMAIL_REMINDER => PLACEHOLDER_SIGNING_LINK,
+    EMAIL_FINAL_REMINDER => PLACEHOLDER_SIGNING_LINK,
+    EMAIL_PASSCODE => PLACEHOLDER_PASSCODE
+  };
+
   // ---------- Names of related metadata ----------
   /** @description The SignZero_Setting__mdt record SignZero reads. */
   public static final String SETTINGS_RECORD = 'Default';
@@ -195,6 +229,7 @@ public inherited sharing class SignZeroConstants {
     'Email__c',
     'Signer_Role__c',
     'Routing_Order__c',
-    'SignZero_Request__c'
+    'SignZero_Request__c',
+    'Contact__c'
   };
 }

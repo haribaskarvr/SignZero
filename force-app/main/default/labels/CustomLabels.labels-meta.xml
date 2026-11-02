@@ -1944,4 +1944,84 @@
         <shortDescription>More actions</shortDescription>
         <value>More actions</value>
     </labels>
+    <labels>
+        <fullName>SZ_Signers_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Choose signers from this record’s contacts, or search for any contact.</shortDescription>
+        <value>Choose signers from this record’s contacts, or search for any contact.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Search</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Search contacts</shortDescription>
+        <value>Search contacts</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Search_Placeholder</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Name or email</shortDescription>
+        <value>Name or email</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_No_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No contacts with an email address. Search for one, or add someone else below.</shortDescription>
+        <value>No contacts with an email address. Search for one, or add someone else below.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Col_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title</shortDescription>
+        <value>Title</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Col_Account</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Account</shortDescription>
+        <value>Account</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Chosen</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Selected signers</shortDescription>
+        <value>Selected signers</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Add_Other</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add someone else</shortDescription>
+        <value>Add someone else</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_None</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Choose a contact or add someone else to sign.</shortDescription>
+        <value>Choose a contact or add someone else to sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Contacts could not be loaded. You can still add signers by hand.</shortDescription>
+        <value>Contacts could not be loaded. You can still add signers by hand.</value>
+    </labels>
 </CustomLabels>

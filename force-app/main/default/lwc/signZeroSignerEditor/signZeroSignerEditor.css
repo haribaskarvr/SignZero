@@ -1,3 +1,9 @@
+/* Long contact lists scroll inside the screen. */
+.contact-table {
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
 /* The PDF engine's page is loaded out of sight; it only reads the document's tags. */
 .pdf-engine {
     position: absolute;
