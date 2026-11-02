@@ -1,24 +1,19 @@
 /**
- * Appends the pages of one PDF to another without touching the first file's bytes, by writing a PDF
- * incremental update (the mechanism PDF digital signatures rely on). The combined file therefore starts
- * with the executed agreement byte-for-byte, and its SHA-256 still verifies against the first N bytes.
- *
- * Apex cannot inflate compressed PDF structures, so both inputs must use a classic cross-reference table
- * with uncompressed object dictionaries. SignZero guarantees this for its own output (pdf-lib saves with
- * object streams off; Blob.toPdf writes classic files). Anything else raises UnsupportedPdfException and
- * the caller falls back to sending the files separately.
- *
- * Bytes are handled as hex strings, so every offset below is a byte offset and is doubled to index hex.
+ * @description Appends one PDF's pages to another as an incremental update, so the result starts with the base file
+ *   byte for byte and its hash still verifies. Only classic, uncompressed cross-reference tables are supported, as
+ *   SignZero produces; anything else throws UnsupportedPdfException. Bytes are handled as hex, so byte offsets are
+ *   doubled to index it.
  */
 public inherited sharing class SignZeroPdfAppender {
-  /** The PDF uses a structure SignZero cannot append to without inflating it. */
+  /**
+   * @description The PDF uses a structure Apex cannot append to without inflating it.
+   */
   public class UnsupportedPdfException extends Exception {
   }
 
-  private static final Pattern REFERENCE = Pattern.compile(
-    '(\\d+)\\s+(\\d+)\\s+R(?![A-Za-z0-9])'
-  );
-
+  /**
+   * @description A PDF's hex data and the cross-reference facts needed to append to it.
+   */
   private class ParsedPdf {
     String data; // hex
     Integer size;
@@ -29,8 +24,8 @@ public inherited sharing class SignZeroPdfAppender {
   }
 
   /**
-   * Adds the pages of appendix after the pages of base.
-   * @param base the PDF to keep byte-for-byte
+   * @description Adds the pages of one PDF after the pages of another.
+   * @param base the PDF to keep byte for byte
    * @param appendix the PDF whose pages are added
    * @return base followed by an incremental update that adds the pages
    */
@@ -120,6 +115,11 @@ public inherited sharing class SignZeroPdfAppender {
 
   // ---------- parsing ----------
 
+  /**
+   * @description Reads a PDF's trailer and cross-reference tables.
+   * @param data the PDF as hex
+   * @return the parsed PDF
+   */
   private static ParsedPdf parse(String data) {
     ParsedPdf pdf = new ParsedPdf();
     pdf.data = data;
@@ -159,6 +159,11 @@ public inherited sharing class SignZeroPdfAppender {
     return pdf;
   }
 
+  /**
+   * @description Reads one cross-reference table's object offsets. Older sections never override newer ones.
+   * @param table the table's text
+   * @param offsets object number to byte offset, filled in
+   */
   private static void readXrefTable(
     String table,
     Map<Integer, Integer> offsets
@@ -181,10 +186,10 @@ public inherited sharing class SignZeroPdfAppender {
   }
 
   /**
-   * The dictionary text of an object (no header, no stream data).
+   * @description Reads an object's dictionary text.
    * @param pdf the parsed PDF
    * @param num object number
-   * @return the dictionary text
+   * @return the dictionary text, without header or stream data
    */
   private static String objectDict(ParsedPdf pdf, Integer num) {
     Integer[] bounds = objectBounds(pdf, num);
@@ -193,10 +198,10 @@ public inherited sharing class SignZeroPdfAppender {
   }
 
   /**
-   * Where an object's parts are.
+   * @description Finds where an object's parts are.
    * @param pdf the parsed PDF
    * @param num object number
-   * @return [start, body start, stream keyword or -1, endobj] in bytes
+   * @return [start, body start, stream keyword or -1, endobj], in bytes
    */
   private static Integer[] objectBounds(ParsedPdf pdf, Integer num) {
     Integer start = pdf.offsets.get(num);
@@ -215,6 +220,14 @@ public inherited sharing class SignZeroPdfAppender {
     return new List<Integer>{ start, bodyStart, streamAt, endObj };
   }
 
+  /**
+   * @description Copies an appendix object with its references shifted past the base's object numbers.
+   * @param pdf the parsed appendix
+   * @param num object number
+   * @param shift amount added to every object number
+   * @param newParent new parent page tree for page objects, or null
+   * @return the object as hex, ready to write
+   */
   private static String renumberedObject(
     ParsedPdf pdf,
     Integer num,
@@ -239,8 +252,14 @@ public inherited sharing class SignZeroPdfAppender {
     return head + streamPart + hex('endobj\n');
   }
 
+  /**
+   * @description Shifts every object reference in a dictionary.
+   * @param dict the dictionary text
+   * @param shift amount added to every object number
+   * @return the renumbered text
+   */
   private static String renumber(String dict, Integer shift) {
-    Matcher m = REFERENCE.matcher(dict);
+    Matcher m = SignZeroConstants.PDF_REFERENCE.matcher(dict);
     List<String> parts = new List<String>();
     Integer last = 0;
     while (m.find()) {
@@ -254,6 +273,12 @@ public inherited sharing class SignZeroPdfAppender {
     return String.join(parts, '');
   }
 
+  /**
+   * @description Builds a cross-reference section for the written objects.
+   * @param sortedNums object numbers, ascending
+   * @param offsets object number to byte offset
+   * @return the section text
+   */
   private static String xrefSection(
     List<Integer> sortedNums,
     Map<Integer, Integer> offsets
@@ -282,10 +307,22 @@ public inherited sharing class SignZeroPdfAppender {
 
   // ---------- byte helpers ----------
 
+  /**
+   * @description Converts ASCII text to hex.
+   * @param text the text
+   * @return its hex
+   */
   private static String hex(String text) {
     return EncodingUtil.convertToHex(Blob.valueOf(text));
   }
 
+  /**
+   * @description Reads a byte range as ASCII text.
+   * @param data the PDF as hex
+   * @param fromByte first byte
+   * @param toByte byte after the last
+   * @return the text; throws when the range is binary
+   */
   private static String ascii(String data, Integer fromByte, Integer toByte) {
     try {
       return EncodingUtil.convertFromHex(
@@ -300,7 +337,7 @@ public inherited sharing class SignZeroPdfAppender {
   }
 
   /**
-   * Finds text in the hex data.
+   * @description Finds text in the hex data.
    * @param data the PDF as hex
    * @param needle ASCII text to find
    * @param fromByte byte offset to search from
@@ -315,6 +352,13 @@ public inherited sharing class SignZeroPdfAppender {
     return i < 0 ? -1 : i / 2;
   }
 
+  /**
+   * @description Finds text that must be present.
+   * @param data the PDF as hex
+   * @param needle ASCII text to find
+   * @param fromByte byte offset to search from
+   * @return byte offset of needle; throws when missing
+   */
   private static Integer require(String data, String needle, Integer fromByte) {
     Integer at = find(data, needle, fromByte);
     if (at < 0) {
@@ -323,6 +367,12 @@ public inherited sharing class SignZeroPdfAppender {
     return at;
   }
 
+  /**
+   * @description Finds the last occurrence of text in the hex data.
+   * @param data the PDF as hex
+   * @param needle ASCII text to find
+   * @return byte offset of the last needle, or -1
+   */
   private static Integer lastFind(String data, String needle) {
     String n = hex(needle);
     Integer i = data.lastIndexOf(n);
@@ -332,6 +382,12 @@ public inherited sharing class SignZeroPdfAppender {
     return i < 0 ? -1 : i / 2;
   }
 
+  /**
+   * @description Reads the number after a dictionary key.
+   * @param text the dictionary text
+   * @param key the key, e.g. /Size
+   * @return the number; throws when missing
+   */
   private static Integer intAfter(String text, String key) {
     Matcher m = Pattern.compile(Pattern.quote(key) + '\\s*(\\d+)')
       .matcher(text);
@@ -341,6 +397,12 @@ public inherited sharing class SignZeroPdfAppender {
     return Integer.valueOf(m.group(1));
   }
 
+  /**
+   * @description Reads the object number of the reference after a dictionary key.
+   * @param text the dictionary text
+   * @param key the key, e.g. /Root
+   * @return the referenced object number; throws when missing
+   */
   private static Integer refAfter(String text, String key) {
     Matcher m = Pattern.compile(Pattern.quote(key) + '\\s*(\\d+)\\s+\\d+\\s+R')
       .matcher(text);

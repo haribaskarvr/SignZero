@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Logo_Url__c</fullName>
+    <description>Logo on the signing site header, in signer emails and on the Certificate of Completion. Set by uploading it from the SignZero Header in Experience Builder. Blank for none.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Logo on the signing site header, in signer emails and on the Certificate of Completion. Set by uploading it from the SignZero Header in Experience Builder. Blank for none.</inlineHelpText>
+    <label>Logo URL</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

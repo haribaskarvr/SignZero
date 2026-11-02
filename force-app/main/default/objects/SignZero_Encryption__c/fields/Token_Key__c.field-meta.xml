@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Token_Key__c</fullName>
+    <description>AES-256 key (Base64) that encrypts signing tokens so reminders can re-send the same link. Generated automatically on first use.</description>
+    <externalId>false</externalId>
+    <label>Token Key</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

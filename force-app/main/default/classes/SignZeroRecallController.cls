@@ -1,24 +1,24 @@
 /**
- * "Recall Envelope" quick action: the sender cancels (voids) an envelope that is still out for signature.
- * The sender must be able to edit the envelope (checked in user mode). Recalling closes every signing link,
- * marks signers who had not signed yet as Voided, logs a Recalled event in the audit trail and emails
- * everyone who was already sent the envelope.
+ * @description "Recall Envelope" quick action: the sender voids an envelope still out for signature. Recalling closes
+ *   every signing link, voids unsigned signers, logs the recall and emails everyone already sent the envelope. The
+ *   sender needs edit access.
  */
 public with sharing class SignZeroRecallController {
-  private static final Integer MAX_REASON = 1000;
-
-  /** Outcome of a recall, for the toast. */
+  /**
+   * @description Outcome of a recall, for the toast.
+   */
   public class Result {
-    /** How many signers were sent the cancellation email. */
+    /** @description How many signers were sent the cancellation email. */
     @AuraEnabled
     public Integer notified;
-    /** Set when the envelope was recalled but the cancellation email could not be sent. */
+    /** @description Set when the envelope was recalled but the cancellation email could not be sent. */
     @AuraEnabled
     public String warning;
   }
 
   /**
-   * Who will be told, for the confirmation screen. Throws with a readable reason if the envelope cannot be recalled.
+   * @description Lists who will be told, for the confirmation screen. Throws a readable reason if the envelope cannot
+   *   be recalled.
    * @param recordId the Signature Request
    * @return the signers who will get a cancellation email
    */
@@ -37,7 +37,7 @@ public with sharing class SignZeroRecallController {
   }
 
   /**
-   * Recalls (voids) the envelope. Throws with a readable reason if it cannot be recalled.
+   * @description Recalls (voids) the envelope. Throws a readable reason if it cannot be recalled.
    * @param recordId the Signature Request
    * @param reason the sender's reason (optional), emailed to the signers and kept in the audit trail
    * @return how many signers were emailed, and a warning if the email failed
@@ -45,7 +45,7 @@ public with sharing class SignZeroRecallController {
   @AuraEnabled
   public static Result recall(Id recordId, String reason) {
     SignZero_Request__c envelope = loadRecallable(recordId);
-    reason = String.isBlank(reason) ? null : reason.trim().left(MAX_REASON);
+    reason = String.isBlank(reason) ? null : reason.trim().left(SignZeroConstants.MAX_RECALL_REASON);
     SignZeroRecordGuard.markProcessUpdate();
 
     String details = ('Recalled by ' +
@@ -61,15 +61,26 @@ public with sharing class SignZeroRecallController {
     if (envelope.OwnerId != UserInfo.getUserId()) {
       SignZeroNotifier.notifyOwner(
         envelope,
-        'Recalled',
-        details.replaceFirst('^Recalled', 'Envelope recalled')
+        System.Label.SZ_Outcome_Recalled,
+        SignZeroNotifier.fill(
+          System.Label.SZ_Owner_Recalled,
+          new List<Object>{ UserInfo.getName() }
+        ) +
+          (reason == null
+            ? ''
+            : ' ' +
+              SignZeroNotifier.fill(
+                System.Label.SZ_Mail_Reason,
+                new List<Object>{ reason }
+              ))
       );
     }
     return result;
   }
 
   /**
-   * Voids the envelope and the signers who had not signed, closes every link and writes a Recalled event per signer.
+   * @description Voids the envelope and the signers who had not signed, closes every link and logs a Recalled event per
+   *   signer.
    * @param envelope the envelope, with its signers
    * @param reason the sender's reason, or null
    * @param details the audit entry text (who recalled it and why)
@@ -85,19 +96,20 @@ public with sharing class SignZeroRecallController {
     List<SignZeroAuditService.Entry> audit = new List<SignZeroAuditService.Entry>();
     for (SignZero_Recipient__c r : envelope.Recipients__r) {
       SignZero_Recipient__c row = new SignZero_Recipient__c(Id = r.Id);
-      if (SignZeroRecordGuard.AWAITING.contains(r.Status__c)) {
-        row.Status__c = 'Voided';
+      if (SignZeroConstants.SIGNER_AWAITING.contains(r.Status__c)) {
+        row.Status__c = SignZeroConstants.SIGNER_VOIDED;
       }
-      // Every link stops working now, including signed signers' read-only links.
+      // Including signed signers' read-only links.
       if (r.Token_Expires_At__c != null && r.Token_Expires_At__c > now) {
         row.Token_Expires_At__c = now;
       }
+      row.Token_Encrypted__c = null;
       recipients.add(row);
 
       SignZeroAuditService.Entry e = new SignZeroAuditService.Entry(
         r.Id,
         envelope.Id,
-        'Recalled'
+        SignZeroConstants.EVENT_RECALLED
       );
       e.ipAddress = ip;
       e.documentHash = envelope.Working_Copy_Hash__c;
@@ -106,7 +118,7 @@ public with sharing class SignZeroRecallController {
     }
     update as system new SignZero_Request__c(
       Id = envelope.Id,
-      Status__c = 'Voided',
+      Status__c = SignZeroConstants.ENVELOPE_VOIDED,
       Recall_Reason__c = reason,
       Error_Message__c = null
     );
@@ -115,8 +127,8 @@ public with sharing class SignZeroRecallController {
   }
 
   /**
-   * Emails the cancellation to everyone who was sent a link. The recall stands even if the email fails;
-   * the sender is told and the problem is kept on the envelope.
+   * @description Emails the cancellation to everyone who was sent a link. The recall stands if the email fails; the
+   *   sender is told and the problem is kept on the envelope.
    * @param envelope the recalled envelope, with its signers
    * @param reason the sender's reason, or null
    * @return how many signers were emailed, and a warning if the email failed
@@ -152,7 +164,7 @@ public with sharing class SignZeroRecallController {
   }
 
   /**
-   * The envelope, if the user can see and edit it and it is still out for signature.
+   * @description Loads the envelope if the user can edit it and it is still out for signature.
    * @param recordId the Signature Request
    * @return the envelope, with its signers
    */
@@ -178,7 +190,7 @@ public with sharing class SignZeroRecallController {
       throw fail(System.Label.SZ_Recall_Err_Not_Found);
     }
     SignZero_Request__c envelope = envelopes[0];
-    if (envelope.Status__c != 'Out for Signature') {
+    if (envelope.Status__c != SignZeroConstants.ENVELOPE_OUT_FOR_SIGNATURE) {
       throw fail(refusal(envelope.Status__c));
     }
     if (
@@ -195,35 +207,32 @@ public with sharing class SignZeroRecallController {
   }
 
   /**
-   * Why an envelope in this status cannot be recalled.
+   * @description Explains why an envelope in this status cannot be recalled.
    * @param status the envelope status (anything but Out for Signature)
    * @return the message for the sender
    */
   private static String refusal(String status) {
-    switch on status {
-      when 'Completed' {
-        return System.Label.SZ_Recall_Err_Completed;
-      }
-      when 'Sealing' {
-        return System.Label.SZ_Recall_Err_Sealing;
-      }
-      when 'Declined' {
-        return System.Label.SZ_Recall_Err_Declined;
-      }
-      when 'Voided' {
-        return System.Label.SZ_Recall_Err_Already;
-      }
-      when else {
-        return String.format(
-          System.Label.SZ_Recall_Err_Status,
-          new List<Object>{ status }
-        );
-      }
+    // Not a switch: switch values must be literals.
+    if (status == SignZeroConstants.ENVELOPE_COMPLETED) {
+      return System.Label.SZ_Recall_Err_Completed;
     }
+    if (status == SignZeroConstants.ENVELOPE_SEALING) {
+      return System.Label.SZ_Recall_Err_Sealing;
+    }
+    if (status == SignZeroConstants.ENVELOPE_DECLINED) {
+      return System.Label.SZ_Recall_Err_Declined;
+    }
+    if (status == SignZeroConstants.ENVELOPE_VOIDED) {
+      return System.Label.SZ_Recall_Err_Already;
+    }
+    return String.format(
+      System.Label.SZ_Recall_Err_Status,
+      new List<Object>{ status }
+    );
   }
 
   /**
-   * Signers who were emailed a link (whoever has not been invited yet never heard of the envelope).
+   * @description Lists the signers who were emailed a link; anyone not yet invited never heard of the envelope.
    * @param envelope the envelope, with its signers
    * @return the signers with a Sent At time
    */
@@ -240,7 +249,7 @@ public with sharing class SignZeroRecallController {
   }
 
   /**
-   * An error the quick action shows as is.
+   * @description Builds an error the quick action shows as is.
    * @param message the message for the sender
    * @return the exception to throw
    */

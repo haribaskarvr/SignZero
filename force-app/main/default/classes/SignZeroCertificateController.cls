@@ -1,85 +1,106 @@
 /**
- * Certificate of Completion data. Backs the SignZeroCertificate Visualforce page for internal users, and
- * renders the same certificate as HTML through Blob.toPdf() during sealing. Sealing runs as the platform
- * event user, which cannot open Visualforce pages, and passes the executed hash in because the
- * certificate is rendered before the envelope record is updated.
- * Inherited sharing: with sharing as a page controller, without sharing when called by SignZeroSealService.
- * Queries use system mode for field access because sealing runs as the Automated Process user.
+ * @description Certificate of Completion. Backs the SignZeroCertificate page and renders the same certificate through
+ *   Blob.toPdf() during sealing, which runs as the Automated Process user; hence system-mode queries and inherited
+ *   sharing.
  */
 public inherited sharing class SignZeroCertificateController {
-  /** One signer, as listed on the certificate. */
+  /**
+   * @description One signer as listed on the certificate. Times are GMT.
+   */
   public class SignerRow {
-    /** Signer's name. */
+    /** @description Signer's name. */
     public String name { get; set; }
-    /** Signer's email address. */
+    /** @description Signer's email address. */
     public String email { get; set; }
-    /** Signer role, e.g. Customer. */
+    /** @description Signer role, e.g. Customer. */
     public String role { get; set; }
-    /** Signing status, including reassignment or delegation. */
+    /** @description Signing status, including reassignment. */
     public String status { get; set; }
-    /** Last IP address the signer used. */
+    /** @description Last IP address the signer used. */
     public String ip { get; set; }
-    /** How the signer was authenticated. */
+    /** @description How the signer was authenticated. */
     public String authMethod { get; set; }
-    /** How the signature was adopted (typed, drawn or uploaded). */
+    /** @description How the signature was adopted: typed, drawn or uploaded. */
     public String signatureMethod { get; set; }
-    /** Signer's browser. */
+    /** @description Signer's browser. */
     public String userAgent { get; set; }
-    /** When the invitation was sent, in GMT. */
+    /** @description When the invitation was sent. */
     public String sentAt { get; set; }
-    /** When the signer first opened the document, in GMT. */
+    /** @description When the signer first opened the document. */
     public String viewedAt { get; set; }
-    /** When the signer accepted the electronic records disclosure, in GMT. */
+    /** @description When the signer accepted the electronic records disclosure. */
     public String consentedAt { get; set; }
-    /** When the signer signed, in GMT. */
+    /** @description When the signer signed. */
     public String signedAt { get; set; }
   }
 
-  /** One audit event, as listed on the certificate. */
+  /**
+   * @description One audit event as listed on the certificate. Times are GMT.
+   */
   public class EventRow {
-    /** When the event happened, in GMT. */
+    /** @description When the event happened. */
     public String timestamp { get; set; }
-    /** Signer the event belongs to. */
+    /** @description Signer the event belongs to. */
     public String signer { get; set; }
-    /** What happened. */
+    /** @description What happened. */
     public String eventType { get; set; }
-    /** IP address recorded with the event. */
+    /** @description IP address recorded with the event. */
     public String ip { get; set; }
-    /** Event details. */
+    /** @description Event details. */
     public String details { get; set; }
-    /** The event's hash in the audit chain. */
+    /** @description The event's hash in the audit chain. */
     public String eventHash { get; set; }
   }
 
-  /** The envelope the certificate is for. */
+  /** @description The envelope the certificate is for. */
   public SignZero_Request__c sigRequest { get; set; }
-  /** SHA-256 hash of the executed document. */
+  /** @description SHA-256 of the executed document. */
   public String postSignHash { get; set; }
-  /** When the certificate was generated, in GMT. */
+  /** @description When the certificate was generated, in GMT. */
   public String generatedAt { get; set; }
-  /** Whether the audit chain verified. */
+  /** @description Company logo (https only), or null. */
+  public String logoUrl { get; set; }
+  /** @description Whether the audit chain verified. */
   public Boolean ledgerIntact { get; set; }
-  /** Whether the document hash was signed with an org certificate. */
+  /** @description Whether the document hash was signed with an org certificate. */
   public Boolean pkiApplied { get; set; }
-  /** One row per signer. */
+  /** @description One row per signer. */
   public List<SignerRow> signers { get; set; }
-  /** The audit trail, oldest first. */
+  /** @description The audit trail, oldest first. */
   public List<EventRow> events { get; set; }
 
-  /** Page controller: reads id, postHash and pki (1 or blank) from the page URL. */
+  /**
+   * @description Page controller: reads id, postHash and pki (1 or blank) from the page URL.
+   */
   public SignZeroCertificateController() {
     Map<String, String> params = ApexPages.currentPage().getParameters();
     load(params.get('id'), params.get('postHash'), params.get('pki') == '1');
   }
 
+  /**
+   * @description Builds the certificate for sealing.
+   * @param reqId the envelope
+   * @param postHash SHA-256 of the executed document
+   * @param pki whether the hash was signed with an org certificate
+   */
   private SignZeroCertificateController(Id reqId, String postHash, Boolean pki) {
     load(reqId, postHash, pki);
   }
 
+  /**
+   * @description Loads the envelope, signers and audit trail into the certificate's properties.
+   * @param reqId the envelope; nothing is loaded when null
+   * @param postHash SHA-256 of the executed document
+   * @param pki whether the hash was signed with an org certificate
+   */
   private void load(Id reqId, String postHash, Boolean pki) {
     signers = new List<SignerRow>();
     events = new List<EventRow>();
     generatedAt = utc(Datetime.now());
+    String logo = SignZeroSettings.branding().get('logoUrl');
+    logoUrl = String.isNotBlank(logo) && logo.startsWithIgnoreCase('https://')
+      ? logo
+      : null;
     if (reqId == null) {
       return;
     }
@@ -127,7 +148,7 @@ public inherited sharing class SignZeroCertificateController {
       row.name = r.Name;
       row.email = r.Email__c;
       row.role = r.Signer_Role__c;
-      row.status = r.Status__c == 'Reassigned' &&
+      row.status = r.Status__c == SignZeroConstants.SIGNER_REASSIGNED &&
         r.Reassigned_To__r != null
         ? 'Reassigned to ' +
           r.Reassigned_To__r.Name +
@@ -164,7 +185,7 @@ public inherited sharing class SignZeroCertificateController {
   }
 
   /**
-   * Renders the certificate as a PDF, for sealing.
+   * @description Renders the certificate as a PDF, for sealing.
    * @param signatureRequestId the envelope
    * @param postSignHash hash of the executed document, passed in because the envelope is not updated yet
    * @param pkiApplied whether the hash was signed with an org certificate
@@ -186,7 +207,8 @@ public inherited sharing class SignZeroCertificateController {
   }
 
   /**
-   * Same layout as SignZeroCertificate.page, as a standalone HTML document.
+   * @description Renders the certificate as a standalone HTML document, with the same layout as
+   *   SignZeroCertificate.page.
    * @return the certificate HTML
    */
   @TestVisible
@@ -207,7 +229,11 @@ public inherited sharing class SignZeroCertificateController {
       '.small { font-size: 7.5pt; color: #555; }',
       '.ok { color: #2e844a; font-weight: bold; } .bad { color: #ba0517; font-weight: bold; }',
       '</style></head><body>',
-      '<div class="header"><div class="title">Certificate of Completion</div>',
+      '<div class="header">' +
+      (logoUrl == null
+        ? ''
+        : '<img src="' + h(logoUrl) + '" style="max-height:40px;max-width:200px" alt="" />') +
+      '<div class="title">Certificate of Completion</div>',
       '<p class="sub">Envelope ' +
       h(sigRequest.Name) +
       ' &middot; Generated ' +
@@ -290,6 +316,13 @@ public inherited sharing class SignZeroCertificateController {
     return String.join(out, '');
   }
 
+  /**
+   * @description Builds one label/value table row.
+   * @param label the label, already HTML-safe
+   * @param value the value, already HTML-safe
+   * @param cssClass CSS class for the value cell
+   * @return the row HTML
+   */
   private static String row(String label, String value, String cssClass) {
     return '<tr><td class="label">' +
       label +
@@ -300,10 +333,20 @@ public inherited sharing class SignZeroCertificateController {
       '</td></tr>';
   }
 
+  /**
+   * @description Escapes text for HTML.
+   * @param value any text
+   * @return the escaped text, or '' when null
+   */
   private static String h(String value) {
     return value == null ? '' : value.escapeHtml4();
   }
 
+  /**
+   * @description Formats a time for the certificate.
+   * @param value the time
+   * @return "yyyy-MM-dd HH:mm:ss UTC", or a dash when null
+   */
   private static String utc(Datetime value) {
     return value == null
       ? '—'

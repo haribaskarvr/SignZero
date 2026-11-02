@@ -5,7 +5,7 @@
         higher orders follow once everyone before them has signed. Signers sharing an order sign in parallel.
     </p>
     <template for:each={rows} for:item="row" for:index="index">
-        <div key={row.key} class="slds-grid slds-gutters_x-small slds-wrap slds-m-bottom_x-small row">
+        <div key={row.key} class="slds-grid slds-gutters_x-small slds-wrap slds-grid_vertical-align-end slds-m-bottom_x-small">
             <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
                 <lightning-input label="Full name" value={row.name} data-index={index} data-field="name"
                     onchange={handleChange} required></lightning-input>
@@ -22,7 +22,7 @@
                 <lightning-input type="number" label="Routing order" min="1" step="1" value={row.routingOrder}
                     data-index={index} data-field="routingOrder" onchange={handleChange} required></lightning-input>
             </div>
-            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-12 remove">
+            <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-12 slds-grid slds-grid_align-end">
                 <lightning-button-icon icon-name="utility:delete" alternative-text="Remove signer" title="Remove signer"
                     data-index={index} onclick={removeRow} disabled={isSingleRow}></lightning-button-icon>
             </div>

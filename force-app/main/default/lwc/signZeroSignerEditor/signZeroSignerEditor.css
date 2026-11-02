@@ -1,9 +1,0 @@
-.row {
-    align-items: flex-end;
-}
-
-.remove {
-    display: flex;
-    justify-content: flex-end;
-    padding-bottom: 2px;
-}

@@ -15,6 +15,9 @@
     const NO_YIELD_LOAD = { parseSpeed: Infinity };
     const NO_YIELD_SAVE = { objectsPerTick: Infinity };
     const SIG_WIDTH = 150;
+    // A signature fills the width of its area; one taller than the area's shape rises above it, like a hand
+    // signature above a line, up to this many times the area's height. Keep in step with signZeroPortal.
+    const SIG_OVERFLOW = 2;
     const CAPTION_GAP = 7;
 
     function escapeRegExp(value) {
@@ -280,8 +283,8 @@
         spots.forEach((spot) => {
             const page = pages[spot.pageIndex];
             // Signature resting on the bottom of its area, caption just underneath.
-            const fit = png.scaleToFit(SIG_WIDTH, spot.height);
-            page.drawImage(png, { x: spot.pdfX, y: spot.pdfY, width: fit.width, height: fit.height });
+            const scale = Math.min(SIG_WIDTH / png.width, (SIG_OVERFLOW * spot.height) / png.height);
+            page.drawImage(png, { x: spot.pdfX, y: spot.pdfY, width: png.width * scale, height: png.height * scale });
             page.drawText(caption, { x: spot.pdfX, y: spot.pdfY - CAPTION_GAP, size: 5, font, color: rgb(0.35, 0.35, 0.35) });
         });
         doc.setModificationDate(new Date());

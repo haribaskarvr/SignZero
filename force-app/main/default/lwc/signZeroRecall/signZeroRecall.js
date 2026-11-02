@@ -4,7 +4,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import previewRecall from '@salesforce/apex/SignZeroRecallController.previewRecall';
 import recall from '@salesforce/apex/SignZeroRecallController.recall';
-// Text lives in Custom Labels (category SignZero) so admins can reword and translate it.
+// Text is in Custom Labels (category SignZero) so admins can reword and translate it.
 import header from '@salesforce/label/c.SZ_Recall_Header';
 import loading from '@salesforce/label/c.SZ_Recall_Loading';
 import intro from '@salesforce/label/c.SZ_Recall_Intro';
@@ -31,7 +31,7 @@ const LABELS = {
     cancel
 };
 
-/** Quick action on a Signature Request: confirm, optionally give a reason, then recall (void) the envelope. */
+/** Recall Envelope quick action: confirm, optionally give a reason, then void the envelope. */
 export default class SignZeroRecall extends LightningElement {
     labels = LABELS;
     targets = [];
@@ -42,7 +42,7 @@ export default class SignZeroRecall extends LightningElement {
     canRecall = false;
     _recordId;
 
-    // Quick actions receive recordId after construction, so load when it arrives.
+    // recordId arrives after construction.
     @api
     get recordId() {
         return this._recordId;

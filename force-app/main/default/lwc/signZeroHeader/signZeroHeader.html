@@ -1,0 +1,11 @@
+<template>
+    <header class="site-header slds-grid slds-grid_vertical-align-center slds-p-horizontal_medium slds-p-vertical_small"
+        style={brandStyle}>
+        <template lwc:if={logo}>
+            <img src={logo} alt={companyName} class="site-logo slds-m-right_small" />
+        </template>
+        <template lwc:if={showName}>
+            <span class="slds-text-heading_small slds-truncate" title={companyName}>{companyName}</span>
+        </template>
+    </header>
+</template>

@@ -7,10 +7,7 @@ import intro from '@salesforce/label/c.SZ_Email_Check_Intro';
 
 const LABELS = { title, loading, ok, intro };
 
-/**
- * Shows problems that would stop SignZero emails from being delivered, with how to fix each.
- * Used on the warning screen of "Send for Signature" and on the SignZero Home page.
- */
+/** Email setup problems and how to fix them; on the Send for Signature warning screen and SignZero Home. */
 export default class SignZeroEmailCheck extends LightningElement {
     labels = LABELS;
     issues = [];

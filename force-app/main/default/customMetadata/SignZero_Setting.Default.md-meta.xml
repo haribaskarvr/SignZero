@@ -8,11 +8,7 @@
     </values>
     <values>
         <field>Company_Name__c</field>
-        <value xsi:type="xsd:string">Enterprise Operations</value>
-    </values>
-    <values>
-        <field>Logo_Url__c</field>
-        <value xsi:nil="true"/>
+        <value xsi:type="xsd:string">SignZero</value>
     </values>
     <values>
         <field>Primary_Color__c</field>
@@ -43,7 +39,23 @@
         <value xsi:nil="true"/>
     </values>
     <values>
-        <field>Org_Wide_Email_Address__c</field>
-        <value xsi:nil="true"/>
+        <field>Reminder_First_After_Days__c</field>
+        <value xsi:type="xsd:double">3</value>
+    </values>
+    <values>
+        <field>Reminder_Repeat_Days__c</field>
+        <value xsi:type="xsd:double">3</value>
+    </values>
+    <values>
+        <field>Reminder_Limit__c</field>
+        <value xsi:type="xsd:double">3</value>
+    </values>
+    <values>
+        <field>Reminder_Schedule__c</field>
+        <value xsi:type="xsd:string">0 0 9 * * ?</value>
+    </values>
+    <values>
+        <field>Require_Consent_Before_Viewing__c</field>
+        <value xsi:type="xsd:boolean">false</value>
     </values>
 </CustomMetadata>

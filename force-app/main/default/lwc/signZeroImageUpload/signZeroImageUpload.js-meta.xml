@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>SignZero Image Upload</masterLabel>
+    <description>Uploads the SignZero logo or favicon and saves it in SignZero Branding. Used by the Experience Builder editors.</description>
+</LightningComponentBundle>

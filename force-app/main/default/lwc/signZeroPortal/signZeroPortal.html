@@ -1,87 +1,98 @@
 <template>
     <div class="portal-root" style={dynamicBrandStyles}>
-        <header class="brand-header">
-            <div class="brand-id">
-                <template lwc:if={branding.logoUrl}>
-                    <img src={branding.logoUrl} alt="Company logo" class="brand-logo" />
-                </template>
-                <div class="brand-text">
-                    <h1 class="doc-title">{documentName}</h1>
-                    <p class="text-muted">{branding.companyName}<template lwc:if={envelopeNumber}> ·
-                            {envelopeNumber}</template></p>
-                </div>
+        <!-- Document bar; logo and company name are in signZeroHeader. -->
+        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-shrink-none slds-theme_default slds-border_bottom slds-p-horizontal_medium slds-p-vertical_x-small">
+            <div class="slds-truncate">
+                <h1 class="slds-text-heading_small slds-truncate" title={documentName}>{documentName}</h1>
+                <p class="slds-text-body_small slds-text-color_weak">{envelopeNumber}</p>
             </div>
             <template lwc:if={isSigning}>
-                <div class="header-actions">
+                <div class="slds-no-flex">
                     <template lwc:if={adoptedSignature}>
-                        <button class="link-button" onclick={handleChangeSignature}>{labels.changeSignature}</button>
+                        <lightning-button variant="brand-outline" class="slds-m-left_small" label={labels.changeSignature}
+                            onclick={handleChangeSignature}></lightning-button>
                     </template>
                     <template lwc:if={allowReassign}>
-                        <button class="link-button" onclick={openReassignModal}>{labels.reassignAction}</button>
+                        <lightning-button variant="brand-outline" class="slds-m-left_small" label={labels.reassignAction}
+                            onclick={openReassignModal}></lightning-button>
                     </template>
-                    <button class="link-button" onclick={openDeclineModal}>{labels.decline}</button>
+                    <lightning-button variant="destructive" class="slds-m-left_small" label={labels.decline}
+                        onclick={openDeclineModal}></lightning-button>
                 </div>
             </template>
-        </header>
+        </div>
 
         <template lwc:if={isLoading}>
-            <div class="status-panel">
-                <div class="spinner" aria-hidden="true"></div>
-                <p>{loadingMessage}</p>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <div class="spinner-holder slds-is-relative">
+                    <lightning-spinner variant="brand" size="medium" alternative-text={loadingMessage}></lightning-spinner>
+                </div>
+                <p class="slds-m-top_medium">{loadingMessage}</p>
             </div>
         </template>
 
         <template lwc:if={isError}>
-            <div class="status-panel">
-                <h2 class="status-title">{errorTitle}</h2>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <lightning-icon icon-name="utility:error" variant="error" size="large" alternative-text={errorTitle}></lightning-icon>
+                <h2 class="slds-text-heading_medium slds-m-vertical_small">{errorTitle}</h2>
                 <p>{errorMessage}</p>
             </div>
         </template>
 
         <template lwc:if={isDone}>
-            <div class="status-panel">
-                <div class="status-icon ok">✓</div>
-                <h2 class="status-title">{doneTitle}</h2>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <lightning-icon icon-name="utility:success" variant="success" size="large" alternative-text={doneTitle}></lightning-icon>
+                <h2 class="slds-text-heading_medium slds-m-vertical_small">{doneTitle}</h2>
                 <p>{doneMessage}</p>
             </div>
         </template>
 
         <template lwc:if={isReassigned}>
-            <div class="status-panel">
-                <div class="status-icon ok">✓</div>
-                <h2 class="status-title">{reassignedTitle}</h2>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <lightning-icon icon-name="utility:success" variant="success" size="large" alternative-text={reassignedTitle}></lightning-icon>
+                <h2 class="slds-text-heading_medium slds-m-vertical_small">{reassignedTitle}</h2>
                 <p>{reassignedMessage}</p>
             </div>
         </template>
 
         <template lwc:if={isDeclined}>
-            <div class="status-panel">
-                <h2 class="status-title">{labels.declinedTitle}</h2>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <lightning-icon icon-name="utility:close" size="large" alternative-text={labels.declinedTitle}></lightning-icon>
+                <h2 class="slds-text-heading_medium slds-m-vertical_small">{labels.declinedTitle}</h2>
                 <p>{labels.declinedMessage}</p>
             </div>
         </template>
 
         <template lwc:if={isViewing}>
-            <div class="view-banner" role="status">{viewingMessage}</div>
+            <div class="slds-notify slds-notify_alert" role="status">
+                <h2>{viewingMessage}</h2>
+            </div>
         </template>
 
         <template lwc:if={showViewer}>
-            <div class="viewer-toolbar" role="toolbar">
-                <div class="tool-group">
-                    <button class="icon-button" title={labels.prevPage} aria-label={labels.prevPage}
-                        onclick={handlePrevPage} disabled={isFirstPage}>‹</button>
-                    <span class="page-indicator" aria-live="polite">{pageIndicator}</span>
-                    <button class="icon-button" title={labels.nextPage} aria-label={labels.nextPage}
-                        onclick={handleNextPage} disabled={isLastPage}>›</button>
+            <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap slds-theme_default slds-border_bottom slds-p-horizontal_medium slds-p-vertical_xx-small"
+                role="toolbar">
+                <div class="slds-grid slds-grid_vertical-align-center">
+                    <lightning-button-icon icon-name="utility:chevronleft" variant="border-filled" size="small"
+                        title={labels.prevPage} alternative-text={labels.prevPage} onclick={handlePrevPage}
+                        disabled={isFirstPage}></lightning-button-icon>
+                    <span class="toolbar-value slds-text-body_small slds-text-align_center" aria-live="polite">{pageIndicator}</span>
+                    <lightning-button-icon icon-name="utility:chevronright" variant="border-filled" size="small"
+                        title={labels.nextPage} alternative-text={labels.nextPage} onclick={handleNextPage}
+                        disabled={isLastPage}></lightning-button-icon>
                 </div>
-                <div class="tool-group">
-                    <button class="icon-button" title={labels.zoomOut} aria-label={labels.zoomOut}
-                        onclick={handleZoomOut}>−</button>
-                    <span class="zoom-value">{zoomLabel}</span>
-                    <button class="icon-button" title={labels.zoomIn} aria-label={labels.zoomIn}
-                        onclick={handleZoomIn}>+</button>
-                    <button class={fitPageClass} onclick={handleFitPage}>{labels.fitPage}</button>
-                    <button class={fitWidthClass} onclick={handleFitWidth}>{labels.fitWidth}</button>
+                <div class="slds-grid slds-grid_vertical-align-center">
+                    <lightning-button-icon icon-name="utility:dash" variant="border-filled" size="small"
+                        title={labels.zoomOut} alternative-text={labels.zoomOut} onclick={handleZoomOut}></lightning-button-icon>
+                    <span class="toolbar-value slds-text-body_small slds-text-align_center">{zoomLabel}</span>
+                    <lightning-button-icon icon-name="utility:add" variant="border-filled" size="small"
+                        title={labels.zoomIn} alternative-text={labels.zoomIn} onclick={handleZoomIn}></lightning-button-icon>
+                    <lightning-button-group class="slds-m-left_small">
+                        <lightning-button variant={fitPageVariant} label={labels.fitPage}
+                            onclick={handleFitPage}></lightning-button>
+                        <lightning-button variant={fitWidthVariant} label={labels.fitWidth}
+                            onclick={handleFitWidth}></lightning-button>
+                    </lightning-button-group>
                 </div>
             </div>
         </template>
@@ -94,136 +105,190 @@
 
         <template lwc:if={showGuide}>
             <div class="guided-nav-container">
-                <button class="guided-nav-button" onclick={handleJumpToNextField} disabled={isSubmitting}>
-                    {guideButtonLabel}
-                </button>
+                <lightning-button variant="brand" class="guided-nav-button" label={guideButtonLabel}
+                    onclick={handleJumpToNextField} disabled={isSubmitting}></lightning-button>
             </div>
         </template>
 
         <template lwc:if={showConsentModal}>
-            <div class="consent-backdrop">
-                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="consent-title">
-                    <h2 id="consent-title" class="modal-title">{labels.consentTitle}</h2>
-                    <div class="consent-body">
+            <section class="slds-modal slds-fade-in-open" role="dialog" aria-modal="true" aria-labelledby="consent-title">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h2 id="consent-title" class="slds-modal__title slds-hyphenate">{labels.consentTitle}</h2>
+                    </div>
+                    <div class="slds-modal__content slds-p-around_medium slds-text-longform">
                         <p>{consentGreeting}</p>
                         <p>{labels.consentBody}</p>
                         <p>{labels.consentPaperOption}</p>
                     </div>
-                    <div class="modal-actions">
-                        <!-- The wrong recipient can hand the document on without agreeing to anything first. -->
-                        <template lwc:if={allowReassign}>
-                            <button class="link-button consent-reassign"
-                                onclick={openReassignModal}>{labels.reassignAction}</button>
-                        </template>
-                        <button class="neutral-button" onclick={openDeclineModal}>{labels.decline}</button>
-                        <button class="brand-button" onclick={handleAcceptConsent}
-                            disabled={isWorking}>{labels.consentAccept}</button>
+                    <div class="slds-modal__footer slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                        <div>
+                            <!-- The wrong recipient can pass it on without agreeing to anything. -->
+                            <template lwc:if={allowReassign}>
+                                <lightning-button variant="base" label={labels.reassignAction}
+                                    onclick={openReassignModal}></lightning-button>
+                            </template>
+                        </div>
+                        <div>
+                            <template lwc:if={canPostponeConsent}>
+                                <lightning-button label={labels.consentNotNow} onclick={closeConsentModal}></lightning-button>
+                            </template>
+                            <lightning-button class="slds-m-left_x-small" label={labels.decline}
+                                onclick={openDeclineModal}></lightning-button>
+                            <lightning-button class="slds-m-left_x-small" variant="brand" label={labels.consentAccept}
+                                onclick={handleAcceptConsent} disabled={isWorking}></lightning-button>
+                        </div>
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
         </template>
 
         <template lwc:if={showSignatureModal}>
-            <div class="consent-backdrop">
-                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="sig-title">
-                    <h2 id="sig-title" class="modal-title">{labels.padTitle}</h2>
-                    <p class="text-muted">{labels.padHelp}</p>
-                    <div class="mode-tabs" role="tablist">
-                        <template for:each={modeTabs} for:item="tab">
-                            <button key={tab.id} class={tab.className} role="tab" aria-selected={tab.selected}
-                                data-mode={tab.id} onclick={handleModeChange}>{tab.label}</button>
-                        </template>
+            <section class="slds-modal slds-fade-in-open" role="dialog" aria-modal="true" aria-labelledby="sig-title">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h2 id="sig-title" class="slds-modal__title slds-hyphenate">{labels.padTitle}</h2>
+                        <p class="slds-m-top_x-small slds-text-color_weak">{labels.padHelp}</p>
                     </div>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <lightning-tabset active-tab-value={signatureMode}>
+                            <lightning-tab label={labels.tabType} value="type" onactive={handleModeChange}></lightning-tab>
+                            <lightning-tab label={labels.tabDraw} value="draw" onactive={handleModeChange}></lightning-tab>
+                            <lightning-tab label={labels.tabUpload} value="upload" onactive={handleModeChange}></lightning-tab>
+                        </lightning-tabset>
 
-                    <template lwc:if={isTypeMode}>
-                        <label class="field-label" for="typed-name">{labels.typeLabel}</label>
-                        <input id="typed-name" class="text-input" type="text" maxlength="80" value={typedName}
-                            oninput={handleTypedNameChange} />
-                        <p class="field-label">{labels.typeStyle}</p>
-                        <div class="typed-options" role="radiogroup">
-                            <template for:each={typedStyleOptions} for:item="option">
-                                <button key={option.index} class={option.className} role="radio"
-                                    aria-checked={option.selected} data-index={option.index}
-                                    onclick={handleTypedStyleChange}>
-                                    <span class="typed-preview" style={option.inlineStyle}>{option.text}</span>
-                                </button>
-                            </template>
-                        </div>
-                    </template>
-
-                    <template lwc:if={isDrawMode}>
-                        <p class="text-muted">{labels.drawHelp}</p>
-                        <div class="canvas-border">
-                            <canvas class="sig-pad" onpointerdown={startDrawing} onpointermove={draw}
-                                onpointerup={stopDrawing} onpointerleave={stopDrawing}
-                                onpointercancel={stopDrawing}></canvas>
-                        </div>
-                    </template>
-
-                    <template lwc:if={isUploadMode}>
-                        <label class="field-label" for="sig-upload">{labels.uploadLabel}</label>
-                        <input id="sig-upload" class="file-input" type="file" accept="image/png,image/jpeg"
-                            onchange={handleUpload} />
-                        <p class="text-muted">{labels.uploadHelp}</p>
-                        <template lwc:if={uploadError}>
-                            <p class="field-error" role="alert">{uploadError}</p>
+                        <template lwc:if={isTypeMode}>
+                            <div class="slds-form-element slds-m-top_medium">
+                                <label class="slds-form-element__label" for="typed-name">{labels.typeLabel}</label>
+                                <div class="slds-form-element__control">
+                                    <input id="typed-name" class="slds-input" type="text" maxlength="80"
+                                        value={typedName} oninput={handleTypedNameChange} />
+                                </div>
+                            </div>
+                            <fieldset class="slds-form-element slds-m-top_small">
+                                <legend class="slds-form-element__label">{labels.typeStyle}</legend>
+                                <div class="slds-form-element__control typed-options" role="radiogroup">
+                                    <template for:each={typedStyleOptions} for:item="option">
+                                        <button key={option.index} class={option.className} role="radio"
+                                            aria-checked={option.selected} data-index={option.index}
+                                            onclick={handleTypedStyleChange}>
+                                            <span class="typed-preview" style={option.inlineStyle}>{option.text}</span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </fieldset>
                         </template>
-                        <template lwc:if={uploadedSignature}>
-                            <div class="canvas-border upload-preview">
-                                <img src={uploadedSignature} alt={labels.uploadLabel} />
+
+                        <template lwc:if={isDrawMode}>
+                            <p class="slds-m-top_medium slds-text-color_weak">{labels.drawHelp}</p>
+                            <div class="slds-box slds-p-around_none slds-m-top_x-small slds-theme_shade">
+                                <canvas class="sig-pad" onpointerdown={startDrawing} onpointermove={draw}
+                                    onpointerup={stopDrawing} onpointerleave={stopDrawing}
+                                    onpointercancel={stopDrawing}></canvas>
                             </div>
                         </template>
-                    </template>
 
-                    <div class="modal-actions spread">
-                        <button class="neutral-button" onclick={clearSignaturePad}>{labels.clear}</button>
+                        <template lwc:if={isUploadMode}>
+                            <lightning-input type="file" label={labels.uploadLabel} accept="image/png,image/jpeg"
+                                onchange={handleUpload}></lightning-input>
+                            <div class="slds-form-element__help">{labels.uploadHelp}</div>
+                            <template lwc:if={uploadError}>
+                                <p class="slds-text-color_error slds-m-top_x-small" role="alert">{uploadError}</p>
+                            </template>
+                            <template lwc:if={isProcessingUpload}>
+                                <div class="slds-box slds-theme_shade slds-m-top_small slds-grid slds-grid_align-center slds-grid_vertical-align-center upload-box"
+                                    role="status">
+                                    <div class="spinner-holder-small slds-is-relative">
+                                        <lightning-spinner variant="brand" size="small"
+                                            alternative-text={labels.uploadProcessing}></lightning-spinner>
+                                    </div>
+                                    <span class="slds-m-left_small slds-text-color_weak">{labels.uploadProcessing}</span>
+                                </div>
+                            </template>
+                            <template lwc:if={uploadedSignature}>
+                                <div class="slds-box slds-theme_shade slds-m-top_small slds-align_absolute-center upload-box upload-preview">
+                                    <img src={uploadedSignature} alt={labels.uploadLabel} />
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                    <div class="slds-modal__footer slds-grid slds-grid_align-spread">
+                        <lightning-button variant="destructive" label={labels.clear} onclick={clearSignaturePad}></lightning-button>
                         <div>
-                            <button class="neutral-button" onclick={closeSignatureModal}>{labels.cancel}</button>
-                            <button class="brand-button" onclick={confirmSignaturePlacement}
-                                disabled={adoptDisabled}>{labels.adoptSign}</button>
+                            <lightning-button label={labels.cancel} onclick={closeSignatureModal}></lightning-button>
+                            <lightning-button class="slds-m-left_x-small" variant="brand" label={labels.adoptSign}
+                                onclick={confirmSignaturePlacement} disabled={adoptDisabled}></lightning-button>
                         </div>
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
         </template>
 
         <template lwc:if={showDeclineModal}>
-            <div class="consent-backdrop">
-                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="decline-title">
-                    <h2 id="decline-title" class="modal-title">{labels.declineTitle}</h2>
-                    <label class="field-label" for="decline-reason">{labels.declineReason}</label>
-                    <textarea id="decline-reason" class="decline-reason" rows="4"
-                        onchange={handleReasonChange}></textarea>
-                    <div class="modal-actions">
-                        <button class="neutral-button" onclick={closeDeclineModal}>{labels.back}</button>
-                        <button class="danger-button" onclick={confirmDecline}
-                            disabled={isWorking}>{labels.decline}</button>
+            <section class="slds-modal slds-fade-in-open" role="dialog" aria-modal="true" aria-labelledby="decline-title">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h2 id="decline-title" class="slds-modal__title slds-hyphenate">{labels.declineTitle}</h2>
                     </div>
-                </section>
-            </div>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label" for="decline-reason">{labels.declineReason}</label>
+                            <div class="slds-form-element__control">
+                                <textarea id="decline-reason" class="slds-textarea" rows="4"
+                                    onchange={handleReasonChange}></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label={labels.back} onclick={closeDeclineModal}></lightning-button>
+                        <lightning-button class="slds-m-left_x-small" variant="destructive" label={labels.decline}
+                            onclick={confirmDecline} disabled={isWorking}></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
         </template>
 
         <template lwc:if={showReassignModal}>
-            <div class="consent-backdrop">
-                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reassign-title">
-                    <h2 id="reassign-title" class="modal-title">{labels.reassignAction}</h2>
-                    <p class="text-muted">{labels.reassignHelp}</p>
-                    <label class="field-label" for="reassign-name">{labels.reassignName}</label>
-                    <input id="reassign-name" class="text-input" type="text" maxlength="80" data-field="name"
-                        value={reassignTo.name} oninput={handleReassignInput} />
-                    <label class="field-label" for="reassign-email">{labels.reassignEmail}</label>
-                    <input id="reassign-email" class="text-input" type="email" maxlength="80" data-field="email"
-                        value={reassignTo.email} oninput={handleReassignInput} />
-                    <label class="field-label" for="reassign-reason">{labels.reassignReason}</label>
-                    <textarea id="reassign-reason" class="decline-reason" rows="3" data-field="reason"
-                        oninput={handleReassignInput}></textarea>
-                    <div class="modal-actions">
-                        <button class="neutral-button" onclick={closeReassignModal}>{labels.back}</button>
-                        <button class="brand-button" onclick={confirmReassign}
-                            disabled={isWorking}>{labels.reassignConfirm}</button>
+            <section class="slds-modal slds-fade-in-open" role="dialog" aria-modal="true" aria-labelledby="reassign-title">
+                <div class="slds-modal__container">
+                    <div class="slds-modal__header">
+                        <h2 id="reassign-title" class="slds-modal__title slds-hyphenate">{labels.reassignAction}</h2>
+                        <p class="slds-m-top_x-small slds-text-color_weak">{labels.reassignHelp}</p>
                     </div>
-                </section>
-            </div>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <div class="slds-form-element">
+                            <label class="slds-form-element__label" for="reassign-name">{labels.reassignName}</label>
+                            <div class="slds-form-element__control">
+                                <input id="reassign-name" class="slds-input" type="text" maxlength="80" data-field="name"
+                                    value={reassignTo.name} oninput={handleReassignInput} />
+                            </div>
+                        </div>
+                        <div class="slds-form-element slds-m-top_small">
+                            <label class="slds-form-element__label" for="reassign-email">{labels.reassignEmail}</label>
+                            <div class="slds-form-element__control">
+                                <input id="reassign-email" class="slds-input" type="email" maxlength="80" data-field="email"
+                                    value={reassignTo.email} oninput={handleReassignInput} />
+                            </div>
+                        </div>
+                        <div class="slds-form-element slds-m-top_small">
+                            <label class="slds-form-element__label" for="reassign-reason">{labels.reassignReason}</label>
+                            <div class="slds-form-element__control">
+                                <textarea id="reassign-reason" class="slds-textarea" rows="3" data-field="reason"
+                                    oninput={handleReassignInput}></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="slds-modal__footer">
+                        <lightning-button label={labels.back} onclick={closeReassignModal}></lightning-button>
+                        <lightning-button class="slds-m-left_x-small" variant="brand" label={labels.reassignConfirm}
+                            onclick={confirmReassign} disabled={isWorking}></lightning-button>
+                    </div>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
         </template>
 
         <template lwc:if={pdfEngineUrl}>
@@ -231,7 +296,14 @@
         </template>
 
         <template lwc:if={toastMessage}>
-            <div class="toast" role="alert">{toastMessage}</div>
+            <div class="slds-notify_container">
+                <div class={toastClass} role="alert">
+                    <lightning-icon class="slds-m-right_small" icon-name={toastIcon} variant="inverse" size="small"></lightning-icon>
+                    <div class="slds-notify__content">
+                        <h2 class="slds-text-heading_small">{toastMessage}</h2>
+                    </div>
+                </div>
+            </div>
         </template>
     </div>
 </template>

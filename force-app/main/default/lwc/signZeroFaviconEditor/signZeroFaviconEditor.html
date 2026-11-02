@@ -1,0 +1,7 @@
+<template>
+    <c-sign-zero-image-upload kind="favicon" label={label} value={value}
+        onimagechange={handleImageChange}></c-sign-zero-image-upload>
+    <template for:each={errors} for:item="error">
+        <div key={error.message} class="slds-text-color_error slds-m-top_x-small" role="alert">{error.message}</div>
+    </template>
+</template>

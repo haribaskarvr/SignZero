@@ -1,0 +1,35 @@
+<template>
+    <div class="slds-form-element">
+        <span class="slds-form-element__label">{label}</span>
+        <div class="slds-form-element__control">
+            <template lwc:if={value}>
+                <div class="slds-box slds-box_x-small slds-theme_shade slds-align_absolute-center slds-m-bottom_x-small">
+                    <img src={value} alt={label} class="image-preview" />
+                </div>
+            </template>
+            <template lwc:else>
+                <p class="slds-text-color_weak slds-m-bottom_x-small">{text.none}</p>
+            </template>
+            <template lwc:if={isSaving}>
+                <div class="slds-is-relative slds-p-vertical_medium">
+                    <lightning-spinner alternative-text={text.saving} size="small"></lightning-spinner>
+                </div>
+            </template>
+            <template lwc:else>
+                <lightning-input type="file" label={label} variant="label-hidden" accept={accept}
+                    onchange={handleFile}></lightning-input>
+                <template lwc:if={value}>
+                    <lightning-button class="slds-m-top_x-small" variant="base" label={text.remove}
+                        onclick={handleRemove}></lightning-button>
+                </template>
+            </template>
+        </div>
+        <div class="slds-form-element__help">{text.help}</div>
+        <template lwc:if={message}>
+            <div class="slds-text-color_success slds-m-top_x-small" role="status">{message}</div>
+        </template>
+        <template lwc:if={errorMessage}>
+            <div class="slds-text-color_error slds-m-top_x-small" role="alert">{errorMessage}</div>
+        </template>
+    </div>
+</template>

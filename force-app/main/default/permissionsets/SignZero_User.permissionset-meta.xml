@@ -5,6 +5,14 @@
         <visible>true</visible>
     </applicationVisibilities>
     <classAccesses>
+        <apexClass>SignZeroBrandingAdmin</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>SignZeroBrandingController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>SignZeroCertificateController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -113,6 +121,16 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>SignZero_Recipient__c.Routing_Order__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>SignZero_Recipient__c.Reminders_Sent__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>SignZero_Recipient__c.Expiry_Notified_At__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

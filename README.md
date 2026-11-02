@@ -36,7 +36,8 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 - Decline to sign, delegate to someone else, resend invitations, and recall an envelope that is still out for signature
 - Personal signing links that expire, and turn read-only once signed
 - Executed PDF and certificate filed on the source record and any related records
-- Bell notifications for the sender at every step
+- Automatic reminders on a schedule you set, with a final reminder that states when the link expires
+- Bell notifications for the sender at every step, including when a signing link expires unsigned
 - Reports and a dashboard for envelopes, turnaround and outstanding signatures
 - Your branding: company name, logo and colours on the signing page and in emails
 - Every signer-facing word in Custom Labels, ready to reword or translate

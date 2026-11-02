@@ -207,6 +207,26 @@
                     <name>uiBehavior</name>
                     <value>readonly</value>
                 </fieldInstanceProperties>
+                <fieldItem>Record.Reminders_Sent__c</fieldItem>
+                <identifier>RecordReminders_Sent_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.Expiry_Notified_At__c</fieldItem>
+                <identifier>RecordExpiry_Notified_At_cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
                 <fieldItem>Record.Viewed_At__c</fieldItem>
                 <identifier>RecordViewed_At_cField</identifier>
             </fieldInstance>

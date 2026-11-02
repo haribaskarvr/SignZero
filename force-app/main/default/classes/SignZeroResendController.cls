@@ -1,19 +1,22 @@
 /**
- * "Resend Invitation" quick action, on an envelope (everyone whose turn it is) or on a single signer.
- * The sender must be able to see the record (checked in user mode); the resend itself runs through the
- * same invitation service as the first send, which mints a fresh link and logs it in the audit trail.
+ * @description "Resend Invitation" quick action, on an envelope (everyone whose turn it is) or a single signer. Sends a
+ *   fresh link through SignZeroInvitationService, which logs it in the audit trail.
  */
 public with sharing class SignZeroResendController {
-  /** A signer who will be emailed, for the confirmation screen. */
+  /**
+   * @description A signer who will be emailed, for the confirmation screen.
+   */
   public class Target {
+    /** @description Signer's name. */
     @AuraEnabled
     public String name;
+    /** @description Signer's email address. */
     @AuraEnabled
     public String email;
   }
 
   /**
-   * Who would be re-invited, for the confirmation screen. Throws with a readable reason if nobody can be.
+   * @description Lists who would be re-invited, for the confirmation screen. Throws a readable reason if nobody can be.
    * @param recordId a Signature Request (everyone whose turn it is) or a Signature Recipient
    * @return the signers who would get a new link
    */
@@ -30,7 +33,7 @@ public with sharing class SignZeroResendController {
   }
 
   /**
-   * Emails a new signing link; links sent before stop working.
+   * @description Emails new signing links; links sent before stop working.
    * @param recordId a Signature Request (everyone whose turn it is) or a Signature Recipient
    * @return how many signers were emailed
    */
@@ -55,6 +58,11 @@ public with sharing class SignZeroResendController {
     return targets.size();
   }
 
+  /**
+   * @description Finds the signers to re-invite. The user must be able to see the record.
+   * @param recordId a Signature Request or a Signature Recipient
+   * @return the signers whose turn it is; throws a readable reason when there are none
+   */
   private static List<SignZero_Recipient__c> resolveTargets(Id recordId) {
     Id requestId;
     Id onlyRecipientId;
@@ -95,7 +103,7 @@ public with sharing class SignZeroResendController {
     if (envelopes.isEmpty()) {
       throw fail(System.Label.SZ_Resend_Err_Not_Found);
     }
-    if (envelopes[0].Status__c != 'Out for Signature') {
+    if (envelopes[0].Status__c != SignZeroConstants.ENVELOPE_OUT_FOR_SIGNATURE) {
       throw fail(
         String.format(
           System.Label.SZ_Resend_Err_Status,
@@ -108,7 +116,7 @@ public with sharing class SignZeroResendController {
     Decimal activeOrder = null;
     List<SignZero_Recipient__c> due = new List<SignZero_Recipient__c>();
     for (SignZero_Recipient__c r : envelopes[0].Recipients__r) {
-      if (!SignZeroRecordGuard.AWAITING.contains(r.Status__c)) {
+      if (!SignZeroConstants.SIGNER_AWAITING.contains(r.Status__c)) {
         continue;
       }
       if (activeOrder == null) {
@@ -132,6 +140,11 @@ public with sharing class SignZeroResendController {
     throw fail(System.Label.SZ_Resend_Err_Not_Due);
   }
 
+  /**
+   * @description Builds an error the quick action shows as is.
+   * @param message the message for the sender
+   * @return the exception to throw
+   */
   private static AuraHandledException fail(String message) {
     AuraHandledException ex = new AuraHandledException(message);
     ex.setMessage(message);

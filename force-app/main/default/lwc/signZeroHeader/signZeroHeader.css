@@ -1,0 +1,12 @@
+/* Brand colour line under the header, as on the signing page. */
+.site-header {
+    min-height: 4rem;
+    background: #ffffff;
+    border-bottom: 2px solid var(--signzero-brand, var(--dxp-g-brand, #0176d3));
+}
+
+.site-logo {
+    max-height: 40px;
+    max-width: 12rem;
+    object-fit: contain;
+}

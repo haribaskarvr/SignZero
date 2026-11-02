@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customSettingsType>Hierarchy</customSettingsType>
+    <description>Keys SignZero generates for itself. Protected, so that once SignZero is installed as a managed package only its own code can read them. Do not edit: changing the key stops reminders from re-sending the links already sent.</description>
+    <enableFeeds>false</enableFeeds>
+    <label>SignZero Encryption</label>
+    <visibility>Protected</visibility>
+</CustomObject>
