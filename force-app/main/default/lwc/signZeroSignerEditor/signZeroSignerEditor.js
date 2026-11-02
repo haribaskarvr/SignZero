@@ -3,20 +3,70 @@ import { FlowAttributeChangeEvent } from 'lightning/flowSupport';
 import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 import RECIPIENT_OBJECT from '@salesforce/schema/SignZero_Recipient__c';
 import SIGNER_ROLE_FIELD from '@salesforce/schema/SignZero_Recipient__c.Signer_Role__c';
+import { findAnchorTags } from 'c/signZeroAnchorTags';
+import PdfEngine from 'c/signZeroPdfEngine';
+import title from '@salesforce/label/c.SZ_Signers_Title';
+import help from '@salesforce/label/c.SZ_Signers_Help';
+import nameLabel from '@salesforce/label/c.SZ_Signers_Name';
+import emailLabel from '@salesforce/label/c.SZ_Signers_Email';
+import roleLabel from '@salesforce/label/c.SZ_Signers_Role';
+import rolePlaceholder from '@salesforce/label/c.SZ_Signers_Role_Placeholder';
+import routingOrderLabel from '@salesforce/label/c.SZ_Signers_Order';
+import add from '@salesforce/label/c.SZ_Signers_Add';
+import remove from '@salesforce/label/c.SZ_Signers_Remove';
+import allTagged from '@salesforce/label/c.SZ_Signers_All_Tagged';
+import untagged from '@salesforce/label/c.SZ_Signers_Untagged';
+import errRoles from '@salesforce/label/c.SZ_Signers_Err_Roles';
+import errIncomplete from '@salesforce/label/c.SZ_Signers_Err_Incomplete';
+import errEmail from '@salesforce/label/c.SZ_Signers_Err_Email';
+import errDuplicate from '@salesforce/label/c.SZ_Signers_Err_Duplicate';
+import errOrder from '@salesforce/label/c.SZ_Signers_Err_Order';
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 let nextKey = 0;
+
+const LABELS = {
+    title,
+    help,
+    name: nameLabel,
+    email: emailLabel,
+    role: roleLabel,
+    rolePlaceholder,
+    routingOrder: routingOrderLabel,
+    add,
+    remove,
+    allTagged,
+    untagged,
+    errRoles,
+    errIncomplete,
+    errEmail,
+    errDuplicate,
+    errOrder
+};
+
+/** Fills {0}, {1}, ... placeholders in a label. */
+function format(label, ...args) {
+    return label.replace(/\{(\d+)\}/g, (match, i) => (args[i] !== undefined ? args[i] : match));
+}
 
 function signature(name, email, role, routingOrder) {
     return JSON.stringify([name ?? '', email ?? '', role ?? '', Number(routingOrder) || 0]);
 }
 
-/** Flow screen component that collects signers as SignZeroSigner records for the Dispatch Document action. */
+/**
+ * Flow screen component that collects signers as SignZeroSigner records for the Dispatch Document action. It also
+ * reads the PDF's {{sig:Role}} tags, so the flow can skip Place Signatures when every signer already has one.
+ */
 export default class SignZeroSignerEditor extends LightningElement {
-    tagExample = '{{sig:Role}}';
+    @api contentDocumentId;
+
+    labels = LABELS;
+    helpText = format(LABELS.help, '{{sig:Role}}');
     rows = [this.newRow(1)];
     roleOptions = [];
     errorMessage;
+    taggedRoles; // lower-case roles with a tag in the PDF; undefined until read
+    engineUrl;
 
     @wire(getObjectInfo, { objectApiName: RECIPIENT_OBJECT })
     recipientInfo;
@@ -27,7 +77,7 @@ export default class SignZeroSignerEditor extends LightningElement {
         if (data) {
             this.roleOptions = data.values.map(({ label, value }) => ({ label, value }));
         } else if (error) {
-            this.errorMessage = 'Signer roles could not be loaded. Check your access to the Signer Role field.';
+            this.errorMessage = LABELS.errRoles;
         }
     }
 
@@ -56,6 +106,54 @@ export default class SignZeroSignerEditor extends LightningElement {
             ...this.newRow(s.routingOrder, s.role ?? '', s.name ?? '', s.email ?? ''),
             ...(this.rows[i] ? { key: this.rows[i].key } : {})
         }));
+    }
+
+    /** Output to the flow: true when every signer's role has a tag in the PDF; false until the tags are read. */
+    @api
+    get allRolesTagged() {
+        return Boolean(this.taggedRoles) && this.rows.every((r) => r.role && this.taggedRoles.has(r.role.toLowerCase()));
+    }
+
+    get tagNotice() {
+        if (!this.taggedRoles || this.taggedRoles.size === 0 || this.rows.every((r) => !r.role)) {
+            return null;
+        }
+        if (this.allRolesTagged) {
+            return LABELS.allTagged;
+        }
+        const untagged = [...new Set(this.rows.filter((r) => r.role && !this.taggedRoles.has(r.role.toLowerCase())).map((r) => r.role))];
+        return untagged.length
+            ? format(LABELS.untagged, untagged.join(', '))
+            : null;
+    }
+
+    connectedCallback() {
+        if (this.contentDocumentId) {
+            this.readTags();
+        }
+    }
+
+    disconnectedCallback() {
+        if (this.engine) {
+            this.engine.stop();
+        }
+    }
+
+    /** Reads the PDF's tags while the sender adds signers. If this fails, Place Signatures is shown. */
+    async readTags() {
+        try {
+            this.engine = new PdfEngine(this);
+            this.engineUrl = this.engine.hostUrl;
+            const opened = await this.engine.openDocument(this.contentDocumentId);
+            this.taggedRoles = new Set(findAnchorTags(opened.tagItems).map((tag) => tag.role.toLowerCase()));
+            this.publish();
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.warn(`[SignZero] Signature tags could not be read: ${error.message || error.body?.message}`);
+        } finally {
+            this.engine.stop();
+            this.engineUrl = null;
+        }
     }
 
     get isSingleRow() {
@@ -90,6 +188,7 @@ export default class SignZeroSignerEditor extends LightningElement {
 
     publish() {
         this.dispatchEvent(new FlowAttributeChangeEvent('signers', this.signers));
+        this.dispatchEvent(new FlowAttributeChangeEvent('allRolesTagged', this.allRolesTagged));
     }
 
     /** Called by the flow before it moves on. */
@@ -100,13 +199,13 @@ export default class SignZeroSignerEditor extends LightningElement {
         const emails = this.rows.map((r) => (r.email || '').trim().toLowerCase());
         let message;
         if (!fieldsValid) {
-            message = 'Complete every signer\u2019s name, email, role and routing order.';
+            message = LABELS.errIncomplete;
         } else if (emails.some((e) => !EMAIL.test(e))) {
-            message = 'One of the email addresses is not valid.';
+            message = LABELS.errEmail;
         } else if (new Set(emails).size !== emails.length) {
-            message = 'Each signer needs a different email address.';
+            message = LABELS.errDuplicate;
         } else if (this.rows.some((r) => !(Number(r.routingOrder) >= 1))) {
-            message = 'Routing order must be 1 or more.';
+            message = LABELS.errOrder;
         }
         this.errorMessage = message;
         return message ? { isValid: false, errorMessage: message } : { isValid: true };

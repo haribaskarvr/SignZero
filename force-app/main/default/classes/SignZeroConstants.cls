@@ -67,6 +67,8 @@ public inherited sharing class SignZeroConstants {
     METHOD_DRAWN => 'Drawn on device',
     METHOD_UPLOADED => 'Uploaded image'
   };
+  /** @description Added to the method when the signer chose where their signature goes. */
+  public static final String PLACED_BY_SIGNER = ', placed by the signer';
 
   /** @description Auth_Method__c value: how every signer is authenticated. */
   public static final String AUTH_TOKEN_LINK = 'Single-use emailed token link';
@@ -106,6 +108,12 @@ public inherited sharing class SignZeroConstants {
   public static final Pattern EMAIL_PATTERN = Pattern.compile(
     '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'
   );
+  /** @description Signature area heights in PDF points, as for {{sig:Role|h=40}} tags. */
+  public static final Integer MIN_SIGNATURE_HEIGHT = 16;
+  public static final Integer MAX_SIGNATURE_HEIGHT = 80;
+  public static final Integer DEFAULT_SIGNATURE_HEIGHT = 30;
+  /** @description Most signature places one envelope's field layout may hold. */
+  public static final Integer MAX_FIELD_PLACEMENTS = 500;
   /** @description Longest recall reason kept. */
   public static final Integer MAX_RECALL_REASON = 1000;
   /** @description Signers per reminder batch; small because each expiry notice runs a query. */
@@ -124,6 +132,7 @@ public inherited sharing class SignZeroConstants {
     'Source_Record_Id__c',
     'Content_Document_Id__c',
     'Related_Record_Ids__c',
+    'Field_Layout__c',
     'Pre_Sign_Hash__c',
     'Post_Sign_Hash__c',
     'Working_Copy_Hash__c',

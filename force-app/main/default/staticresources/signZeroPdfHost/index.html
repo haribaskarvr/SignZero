@@ -8,10 +8,20 @@
     <head>
         <meta charset="utf-8" />
         <title>SignZero PDF engine</title>
-        <!-- engine.js starts PDF.js's worker as soon as it runs; it needs pdf-lib only when called, so pdf-lib comes last. -->
-        <script src="pdf.min.js"></script>
-        <script src="engine.js"></script>
-        <script src="pdf-lib.min.js"></script>
+        <!--
+            engine.js starts PDF.js's worker as soon as it runs; it needs pdf-lib only when called, so pdf-lib comes last.
+            The site lets browsers keep each file for weeks, and a browser can hold this page and the scripts from
+            different deploys. So the scripts are loaded at an address carrying this page's deploy time, which always
+            gives the versions deployed with it.
+        -->
+        <script>
+            (function () {
+                var version = Date.parse(document.lastModified) || 0;
+                ['pdf.min.js', 'engine.js', 'pdf-lib.min.js'].forEach(function (file) {
+                    document.write('<script src="' + file + '?v=' + version + '"><\/script>');
+                });
+            })();
+        </script>
     </head>
     <body></body>
 </html>

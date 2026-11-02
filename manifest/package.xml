@@ -7,6 +7,7 @@
         <members>SignZeroCertificateController</members>
         <members>SignZeroConstants</members>
         <members>SignZeroEmailCheck</members>
+        <members>SignZeroFieldLayout</members>
         <members>SignZeroGatewayController</members>
         <members>SignZeroInvitationService</members>
         <members>SignZeroNotifier</members>
@@ -92,6 +93,7 @@
         <members>SignZero_Request__c.Days_Outstanding__c</members>
         <members>SignZero_Request__c.Document_Name__c</members>
         <members>SignZero_Request__c.Error_Message__c</members>
+        <members>SignZero_Request__c.Field_Layout__c</members>
         <members>SignZero_Request__c.Final_Document_Version_Id__c</members>
         <members>SignZero_Request__c.PKI_Signature__c</members>
         <members>SignZero_Request__c.Post_Sign_Hash__c</members>
@@ -107,6 +109,7 @@
         <members>SignZero_Request__c.Working_Copy_Id__c</members>
         <members>SignZero_Setting__mdt.Accent_Color__c</members>
         <members>SignZero_Setting__mdt.Allow_Reassignment__c</members>
+        <members>SignZero_Setting__mdt.Allow_Signer_Placement__c</members>
         <members>SignZero_Setting__mdt.Certificate_Name__c</members>
         <members>SignZero_Setting__mdt.Company_Name__c</members>
         <members>SignZero_Setting__mdt.Max_Document_Size_KB__c</members>
@@ -244,6 +247,26 @@
         <members>SZ_Pad_Help</members>
         <members>SZ_Pad_Title</members>
         <members>SZ_Page_Of</members>
+        <members>SZ_Place_Another</members>
+        <members>SZ_Place_Cancel</members>
+        <members>SZ_Place_Hint</members>
+        <members>SZ_Place_Own_Notice</members>
+        <members>SZ_Place_Remove</members>
+        <members>SZ_Place_Start</members>
+        <members>SZ_Placer_Drawing_Page</members>
+        <members>SZ_Placer_Err_Load</members>
+        <members>SZ_Placer_Err_No_Document</members>
+        <members>SZ_Placer_Help</members>
+        <members>SZ_Placer_Help_Placing</members>
+        <members>SZ_Placer_No_Places</members>
+        <members>SZ_Placer_No_Signers</members>
+        <members>SZ_Placer_One_Place</members>
+        <members>SZ_Placer_Page</members>
+        <members>SZ_Placer_Place</members>
+        <members>SZ_Placer_Places</members>
+        <members>SZ_Placer_Remove</members>
+        <members>SZ_Placer_Reset</members>
+        <members>SZ_Placer_Title</members>
         <members>SZ_Prev_Page</members>
         <members>SZ_ReadOnly_Completed</members>
         <members>SZ_ReadOnly_Declined</members>
@@ -286,6 +309,8 @@
         <members>SZ_Resend_Err_Send_Failed</members>
         <members>SZ_Resend_Err_Signer_Not_Found</members>
         <members>SZ_Resend_Err_Status</members>
+        <members>SZ_Send_Err_Field_Layout</members>
+        <members>SZ_Send_Err_Field_Layout_Role</members>
         <members>SZ_Send_Err_File_Not_Found</members>
         <members>SZ_Send_Err_No_Permission</members>
         <members>SZ_Send_Err_No_Signer</members>
@@ -296,6 +321,22 @@
         <members>SZ_Send_Err_Too_Large</members>
         <members>SZ_Send_Err_Too_Much_Data</members>
         <members>SZ_Sign_Here</members>
+        <members>SZ_Signers_Add</members>
+        <members>SZ_Signers_All_Tagged</members>
+        <members>SZ_Signers_Email</members>
+        <members>SZ_Signers_Err_Duplicate</members>
+        <members>SZ_Signers_Err_Email</members>
+        <members>SZ_Signers_Err_Incomplete</members>
+        <members>SZ_Signers_Err_Order</members>
+        <members>SZ_Signers_Err_Roles</members>
+        <members>SZ_Signers_Help</members>
+        <members>SZ_Signers_Name</members>
+        <members>SZ_Signers_Order</members>
+        <members>SZ_Signers_Remove</members>
+        <members>SZ_Signers_Role</members>
+        <members>SZ_Signers_Role_Placeholder</members>
+        <members>SZ_Signers_Title</members>
+        <members>SZ_Signers_Untagged</members>
         <members>SZ_Stamp_Caption</members>
         <members>SZ_Submitting</members>
         <members>SZ_Tab_Draw</members>
@@ -407,11 +448,14 @@
         <name>Layout</name>
     </types>
     <types>
+        <members>signZeroAnchorTags</members>
         <members>signZeroEmailCheck</members>
         <members>signZeroFaviconEditor</members>
+        <members>signZeroFieldPlacer</members>
         <members>signZeroHeader</members>
         <members>signZeroImageUpload</members>
         <members>signZeroLogoEditor</members>
+        <members>signZeroPdfEngine</members>
         <members>signZeroPortal</members>
         <members>signZeroRecall</members>
         <members>signZeroResend</members>

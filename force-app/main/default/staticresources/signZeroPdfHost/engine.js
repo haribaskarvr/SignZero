@@ -17,8 +17,9 @@
     const SIG_WIDTH = 150;
     // A signature fills the width of its area; one taller than the area's shape rises above it, like a hand
     // signature above a line, up to this many times the area's height. Keep in step with signZeroPortal.
-    const SIG_OVERFLOW = 2;
-    const CAPTION_GAP = 7;
+    const SIG_OVERFLOW = 1.25;
+    const CAPTION_GAP = 9;
+    const CAPTION_SIZE = 7;
 
     function escapeRegExp(value) {
         return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -282,10 +283,11 @@
 
         spots.forEach((spot) => {
             const page = pages[spot.pageIndex];
-            // Signature resting on the bottom of its area, caption just underneath.
+            // Signature centred across its area, resting on the bottom; caption just underneath.
             const scale = Math.min(SIG_WIDTH / png.width, (SIG_OVERFLOW * spot.height) / png.height);
-            page.drawImage(png, { x: spot.pdfX, y: spot.pdfY, width: png.width * scale, height: png.height * scale });
-            page.drawText(caption, { x: spot.pdfX, y: spot.pdfY - CAPTION_GAP, size: 5, font, color: rgb(0.35, 0.35, 0.35) });
+            const width = png.width * scale;
+            page.drawImage(png, { x: spot.pdfX + (SIG_WIDTH - width) / 2, y: spot.pdfY, width, height: png.height * scale });
+            page.drawText(caption, { x: spot.pdfX, y: spot.pdfY - CAPTION_GAP, size: CAPTION_SIZE, font, color: rgb(0.25, 0.25, 0.25) });
         });
         doc.setModificationDate(new Date());
         return doc.save({ ...NO_YIELD_SAVE, useObjectStreams: false });
@@ -323,7 +325,9 @@
     // portal on the same site, and only those.
     global.SIGNZERO_ENGINE_HOST = Boolean(global.document && global.document.documentElement.hasAttribute('data-signzero-host'));
     if (global.SIGNZERO_ENGINE_HOST && global.pdfjsLib) {
-        global.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdf.worker.min.js', global.document.baseURI).href;
+        // At this page's deploy time, like the scripts index.html loads, so a cached older worker is never used.
+        const workerVersion = Date.parse(global.document.lastModified) || 0;
+        global.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(`pdf.worker.min.js?v=${workerVersion}`, global.document.baseURI).href;
         // Start the worker now, while the portal is still fetching the document; both copies share it.
         sharedWorker = new global.pdfjsLib.PDFWorker();
     }

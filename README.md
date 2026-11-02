@@ -21,7 +21,7 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 ## How it works
 
 1. **Send.** Click **Send for Signature** on an Account or Opportunity (or call it from any Flow), pick the PDF, and
-   add the signers and their order.
+   add the signers and their order, then drag each signer onto the pages where they sign.
 2. **Sign.** Each signer gets a personal link, reviews the document, accepts the electronic records disclosure, and
    signs by typing, drawing or uploading their signature.
 3. **Done.** When everyone has signed, SignZero seals the document, appends the Certificate of Completion, files it
@@ -30,7 +30,8 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 ## Features
 
 - Multiple signers with routing order: sequential, parallel, or both
-- Signature places set by tags in the document, such as `{{sig:Employer}}`, from a picklist of signer roles
+- Signature places dragged onto the document when sending, or set by tags in it, such as `{{sig:Employer}}`, from a
+  picklist of signer roles
 - Typed, drawn or uploaded signatures
 - ESIGN/UETA consent capture
 - Decline to sign, delegate to someone else, resend invitations, and recall an envelope that is still out for signature

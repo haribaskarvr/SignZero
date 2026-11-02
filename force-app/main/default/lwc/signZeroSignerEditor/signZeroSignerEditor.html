@@ -1,34 +1,37 @@
 <template>
-    <div class="slds-text-heading_small slds-m-bottom_x-small">Signers</div>
-    <p class="slds-text-color_weak slds-m-bottom_small">
-        Pick the role whose {tagExample} tags mark that signer's places in the PDF. Signers with routing order 1 are invited first;
-        higher orders follow once everyone before them has signed. Signers sharing an order sign in parallel.
-    </p>
+    <div class="slds-text-heading_small slds-m-bottom_x-small">{labels.title}</div>
+    <p class="slds-text-color_weak slds-m-bottom_small">{helpText}</p>
     <template for:each={rows} for:item="row" for:index="index">
         <div key={row.key} class="slds-grid slds-gutters_x-small slds-wrap slds-grid_vertical-align-end slds-m-bottom_x-small">
             <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
-                <lightning-input label="Full name" value={row.name} data-index={index} data-field="name"
+                <lightning-input label={labels.name} value={row.name} data-index={index} data-field="name"
                     onchange={handleChange} required></lightning-input>
             </div>
             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
-                <lightning-input type="email" label="Email" value={row.email} data-index={index} data-field="email"
+                <lightning-input type="email" label={labels.email} value={row.email} data-index={index} data-field="email"
                     onchange={handleChange} required></lightning-input>
             </div>
             <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
-                <lightning-combobox label="Role" placeholder="Select a role" options={roleOptions} value={row.role}
+                <lightning-combobox label={labels.role} placeholder={labels.rolePlaceholder} options={roleOptions} value={row.role}
                     data-index={index} data-field="role" onchange={handleChange} required></lightning-combobox>
             </div>
             <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
-                <lightning-input type="number" label="Routing order" min="1" step="1" value={row.routingOrder}
+                <lightning-input type="number" label={labels.routingOrder} min="1" step="1" value={row.routingOrder}
                     data-index={index} data-field="routingOrder" onchange={handleChange} required></lightning-input>
             </div>
             <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-12 slds-grid slds-grid_align-end">
-                <lightning-button-icon icon-name="utility:delete" alternative-text="Remove signer" title="Remove signer"
+                <lightning-button-icon icon-name="utility:delete" alternative-text={labels.remove} title={labels.remove}
                     data-index={index} onclick={removeRow} disabled={isSingleRow}></lightning-button-icon>
             </div>
         </div>
     </template>
-    <lightning-button label="Add signer" icon-name="utility:add" onclick={addRow}></lightning-button>
+    <lightning-button label={labels.add} icon-name="utility:add" onclick={addRow}></lightning-button>
+    <template lwc:if={tagNotice}>
+        <p class="slds-text-color_weak slds-m-top_small">{tagNotice}</p>
+    </template>
+    <template lwc:if={engineUrl}>
+        <iframe class="pdf-engine" src={engineUrl} title="SignZero PDF engine" tabindex="-1" aria-hidden="true"></iframe>
+    </template>
     <template lwc:if={errorMessage}>
         <div class="slds-text-color_error slds-m-top_small" role="alert">{errorMessage}</div>
     </template>

@@ -245,6 +245,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>SignZero_Request__c.Field_Layout__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>SignZero_Request__c.Related_Record_Ids__c</field>
         <readable>true</readable>
     </fieldPermissions>

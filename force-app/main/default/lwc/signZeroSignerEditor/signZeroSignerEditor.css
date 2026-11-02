@@ -1,0 +1,8 @@
+/* The PDF engine's page is loaded out of sight; it only reads the document's tags. */
+.pdf-engine {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 0;
+    visibility: hidden;
+}

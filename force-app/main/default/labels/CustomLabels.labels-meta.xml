@@ -265,6 +265,294 @@
         <value>Page {0} of {1}</value>
     </labels>
     <labels>
+        <fullName>SZ_Signers_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: heading; also the signer list on Place Signatures</shortDescription>
+        <value>Signers</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: instructions ({0} = the tag example)</shortDescription>
+        <value>Pick each signer’s role. Signers sign at the PDF’s {0} tags for their role; for roles without one, you place their signatures on the next screen. Signers with routing order 1 are invited first; higher orders follow once everyone before them has signed. Signers sharing an order sign in parallel.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Name</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: name field</shortDescription>
+        <value>Full name</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Email</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: email field</shortDescription>
+        <value>Email</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Role</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: role field</shortDescription>
+        <value>Role</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Role_Placeholder</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: role field placeholder</shortDescription>
+        <value>Select a role</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Order</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: routing order field</shortDescription>
+        <value>Routing order</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Add</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: add a row</shortDescription>
+        <value>Add signer</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Remove</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: remove a row</shortDescription>
+        <value>Remove signer</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_All_Tagged</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: every role has a tag, so Next sends</shortDescription>
+        <value>Every signer has a signature tag in this PDF, so Next sends it right away.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Untagged</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: roles without a tag ({0} = the roles)</shortDescription>
+        <value>No signature tag in this PDF for {0}. You place their signatures on the next screen.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Roles</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: Signer Role values cannot be loaded</shortDescription>
+        <value>Signer roles could not be loaded. Check your access to the Signer Role field.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Incomplete</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: a required field is empty</shortDescription>
+        <value>Complete every signer’s name, email, role and routing order.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Email</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: an email address is not valid</shortDescription>
+        <value>One of the email addresses is not valid.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Duplicate</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: two signers share an email address</shortDescription>
+        <value>Each signer needs a different email address.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Order</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add Signers screen: routing order below 1</shortDescription>
+        <value>Routing order must be 1 or more.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Own_Notice</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: the signer has no place marked and chooses one</shortDescription>
+        <value>No place is marked for your signature. Adopt your signature, then click the document where you want to sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Start</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: button that starts placing a signature</shortDescription>
+        <value>Place Your Signature</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Hint</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: shown while placing a signature</shortDescription>
+        <value>Click the page where you want to sign. Press Esc to cancel.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Cancel</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: button that stops placing a signature</shortDescription>
+        <value>Cancel</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Another</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: button that places another copy of the signature</shortDescription>
+        <value>Add Another Signature</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Place_Remove</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Signing page: removes a signature the signer placed</shortDescription>
+        <value>Remove this signature</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: heading</shortDescription>
+        <value>Place signatures</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: instructions</shortDescription>
+        <value>Drag a signer onto the document where they sign, or select one and click the page. Drag a place to move it; select it and use the arrow keys to nudge it or Delete to remove it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Help_Placing</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: a signer is selected ({0} = the role)</shortDescription>
+        <value>Click the document where {0} signs. Press Esc to cancel.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_No_Places</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: a signer with no places</shortDescription>
+        <value>No places yet: signs at the bottom right of the last page</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_One_Place</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: a signer with one place</shortDescription>
+        <value>1 place</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Places</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: a signer with several places ({0} = how many)</shortDescription>
+        <value>{0} places</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Page</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: above each page ({0} = page number)</shortDescription>
+        <value>Page {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_No_Signers</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: no signers were added</shortDescription>
+        <value>Add signers first.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Reset</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: back to the document tags</shortDescription>
+        <value>Reset to document tags</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Drawing_Page</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: spinner while a page is drawn</shortDescription>
+        <value>Drawing page</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Remove</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: remove a place</shortDescription>
+        <value>Remove</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Place</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures: a place, for screen readers ({0} = role, {1} = page)</shortDescription>
+        <value>{0} signs here, page {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Err_No_Document</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: the flow passed no document</shortDescription>
+        <value>No document was chosen.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Placer_Err_Load</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Place Signatures screen: the PDF cannot be shown</shortDescription>
+        <value>The document could not be shown, so signatures cannot be placed here. You can still send it: signers sign at the document&apos;s {{sig:Role}} tags, or at the bottom right of the last page.</value>
+    </labels>
+    <labels>
         <fullName>SZ_Prev_Page</fullName>
         <categories>SignZero</categories>
         <language>en_US</language>
@@ -911,6 +1199,22 @@
         <protected>false</protected>
         <shortDescription>Invalid signer email ({0} = the address)</shortDescription>
         <value>Invalid signer email: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Field_Layout</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Field layout cannot be read ({0} = what is wrong)</shortDescription>
+        <value>The signature places could not be saved: {0}. Go back to Place Signatures and try again.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Send_Err_Field_Layout_Role</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Field placed for a role nobody signs as ({0} = the role)</shortDescription>
+        <value>A signature is placed for the role &quot;{0}&quot;, but no signer has that role. Remove it or give a signer that role.</value>
     </labels>
     <labels>
         <fullName>SZ_Send_Err_Signer_Role</fullName>

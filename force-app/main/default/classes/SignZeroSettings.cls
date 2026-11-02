@@ -29,6 +29,14 @@ public inherited sharing class SignZeroSettings {
   }
 
   /**
+   * @description Whether a signer with no tag and no place from the sender drags their signature onto the document.
+   * @return true unless Allow Signer Placement is off
+   */
+  public static Boolean allowSignerPlacement() {
+    return get().Allow_Signer_Placement__c != false;
+  }
+
+  /**
    * @description Whether signers must accept the electronic record disclosure before the document is shown.
    * @return true only when the setting is on; by default signers read first and consent when they sign
    */

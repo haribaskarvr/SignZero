@@ -1,0 +1,115 @@
+/* SLDS does the styling; these rules cover the document viewer and the signature places on it. */
+
+.spinner-holder {
+    width: 3rem;
+    height: 3rem;
+}
+
+.role-chip {
+    border-left: 4px solid var(--role-color);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    background: #ffffff;
+}
+
+.role-chip:focus-visible {
+    outline: 2px solid var(--role-color);
+    outline-offset: 1px;
+}
+
+.role-chip.armed {
+    background: color-mix(in srgb, var(--role-color) 12%, #ffffff);
+    border-color: var(--role-color);
+}
+
+.role-name {
+    color: var(--role-color);
+}
+
+.viewer {
+    max-height: 70vh;
+    overflow: auto;
+    padding: 0.75rem;
+    background: #f3f3f3;
+    border-radius: 0.25rem;
+}
+
+.viewer.placing .page {
+    cursor: crosshair;
+}
+
+.page-block + .page-block {
+    margin-top: 1rem;
+}
+
+/* Sized by aspect-ratio; places are positioned in percentages of it. */
+.page {
+    position: relative;
+    width: 100%;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.page-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.field-box {
+    position: absolute;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.125rem 0 0.25rem;
+    border: 2px solid var(--role-color);
+    background: color-mix(in srgb, var(--role-color) 18%, transparent);
+    color: #ffffff;
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.field-box .field-label {
+    background: var(--role-color);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.125rem;
+}
+
+.field-box.selected,
+.field-box:focus-visible {
+    outline: 2px solid #032d60;
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.field-remove {
+    background: var(--role-color);
+    border-radius: 0.125rem;
+}
+
+/* The ghost is positioned inside this box. */
+.placer-root {
+    position: relative;
+}
+
+/* A place being dragged from the signer list follows the pointer above everything. */
+.field-box.ghost {
+    position: absolute;
+    z-index: 9000;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.pdf-engine {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 0;
+    visibility: hidden;
+}

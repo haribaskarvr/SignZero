@@ -24,6 +24,7 @@ private class SignZeroTest {
       DeveloperName = 'Default',
       Site_Base_Url__c = 'https://acme.my.site.com/esign/',
       Allow_Reassignment__c = true,
+      Allow_Signer_Placement__c = true,
       Token_Validity_Days__c = 3,
       Max_Document_Size_KB__c = 100,
       Company_Name__c = 'Acme Corp',
@@ -95,7 +96,8 @@ private class SignZeroTest {
       pdfBase64,
       EncodingUtil.base64Encode(Blob.valueOf('png')),
       'Typed',
-      'TestAgent/1.0'
+      'TestAgent/1.0',
+      null
     );
   }
 
@@ -248,7 +250,8 @@ private class SignZeroTest {
         SIGNED_PDF,
         null,
         'Typed',
-        'x'
+        'x',
+        null
       );
       Assert.fail('expected the used token to be rejected for signing');
     } catch (AuraHandledException e) {
@@ -391,7 +394,8 @@ private class SignZeroTest {
         SIGNED_PDF,
         null,
         'Stamp',
-        'x'
+        'x',
+        null
       );
       Assert.fail('an unknown signature method must be rejected');
     } catch (AuraHandledException e) {
@@ -432,7 +436,8 @@ private class SignZeroTest {
           pdf,
           null,
           'Drawn',
-          'x'
+          'x',
+          null
         );
       }
       Assert.fail('expected an error containing ' + expected);
@@ -636,6 +641,160 @@ private class SignZeroTest {
       Assert.fail('expected ' + expected);
     } catch (SignZeroSettings.SignZeroException e) {
       Assert.isTrue(e.getMessage().contains(expected), e.getMessage());
+    }
+  }
+
+  private static Id dispatchWithLayout(String fieldLayout) {
+    useTestSettings();
+    SignZeroOrchestrator.DispatchRequest req = new SignZeroOrchestrator.DispatchRequest();
+    req.sourceRecordId = [SELECT Id FROM Account WHERE Name = 'Acme'].Id;
+    req.contentDocumentId = [SELECT ContentDocumentId FROM ContentVersion LIMIT 1]
+    .ContentDocumentId;
+    req.recipientName = 'Casey Customer';
+    req.recipientEmail = 'casey@example.com';
+    req.additionalSigners = new List<SignZeroSigner>{
+      new SignZeroSigner('Vic Vendor', 'vic@example.com', 'Vendor', null)
+    };
+    req.fieldLayout = fieldLayout;
+    return SignZeroOrchestrator.execute(
+        new List<SignZeroOrchestrator.DispatchRequest>{ req }
+      )[0]
+      .signatureRequestId;
+  }
+
+  @IsTest
+  static void placedSignaturesReplaceTheTagsForEachRole() {
+    Id requestId = dispatchWithLayout(
+      '[{"role":"customer","page":0,"x":72.123,"y":100,"height":30},' +
+        '{"role":"Customer","page":1,"x":300,"y":80},' +
+        '{"role":"VENDOR","page":0,"x":320,"y":100,"height":200}]'
+    );
+
+    List<SignZeroFieldLayout.Placement> stored = (List<SignZeroFieldLayout.Placement>) JSON.deserialize(
+      [SELECT Field_Layout__c FROM SignZero_Request__c WHERE Id = :requestId]
+      .Field_Layout__c,
+      List<SignZeroFieldLayout.Placement>.class
+    );
+    Assert.areEqual(3, stored.size());
+    Assert.areEqual('Customer', stored[0].role, 'roles are stored as their picklist value');
+    Assert.areEqual(72.12, stored[0].x);
+    Assert.areEqual(30, stored[1].height.intValue(), 'a missing height gets the default');
+    Assert.areEqual('Vendor', stored[2].role);
+    Assert.areEqual(80, stored[2].height.intValue(), 'heights are kept within the tag limits');
+
+    plantToken(recipient(requestId, 1).Id, TOKEN_A);
+    List<SignZeroFieldLayout.Placement> own = (List<SignZeroFieldLayout.Placement>) SignZeroGatewayController.initializeSession(
+        TOKEN_A,
+        'TestAgent'
+      )
+      .get('placements');
+    Assert.areEqual(2, own.size(), 'a signer gets only their own role\'s places');
+    Assert.areEqual(1, own[1].page);
+
+    Id tagsOnly = dispatchWithLayout('  ');
+    plantToken(recipient(tagsOnly, 1).Id, TOKEN_B);
+    Assert.isNull(
+      SignZeroGatewayController.initializeSession(TOKEN_B, 'TestAgent')
+        .get('placements'),
+      'without a layout the signing page uses the tags'
+    );
+  }
+
+  @IsTest
+  static void fieldLayoutIsCheckedBeforeSending() {
+    assertLayoutRejected('{"role":"Customer"}', 'not a list of signature places');
+    assertLayoutRejected('[{"role":"Customer","x":1,"y":2}]', 'no page or position');
+    assertLayoutRejected('[{"role":"Customer","page":-1,"x":1,"y":2}]', 'no page or position');
+    assertLayoutRejected('[{"role":"Employer","page":0,"x":1,"y":2}]', 'no signer has that role');
+    Assert.isNull(SignZeroFieldLayout.normalize('[]', new Set<String>{ 'Customer' }));
+    Assert.isNull(SignZeroFieldLayout.forRole(null, 'Customer'));
+  }
+
+  private static void assertLayoutRejected(String fieldLayout, String expected) {
+    try {
+      dispatchWithLayout(fieldLayout);
+      Assert.fail('expected ' + expected);
+    } catch (SignZeroSettings.SignZeroException e) {
+      Assert.isTrue(e.getMessage().contains(expected), e.getMessage());
+    }
+    Assert.areEqual(0, [SELECT COUNT() FROM SignZero_Request__c]);
+  }
+
+  @IsTest
+  static void signerChosenPlacesAreRecordedAsEvidence() {
+    Id requestId = dispatchTwoSigners();
+    plantToken(recipient(requestId, 1).Id, TOKEN_A);
+    Map<String, Object> session = SignZeroGatewayController.initializeSession(
+      TOKEN_A,
+      'TestAgent'
+    );
+    Assert.areEqual(true, session.get('allowSignerPlacement'));
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent');
+
+    SignZeroSettings.cached.Allow_Signer_Placement__c = false;
+    try {
+      SignZeroGatewayController.submitExecutedDocument(
+        TOKEN_A,
+        SIGNED_PDF,
+        null,
+        'Drawn',
+        'TestAgent',
+        '[{"page":1,"x":76.1,"y":607.35}]'
+      );
+      Assert.fail('signer placement is off');
+    } catch (AuraHandledException e) {
+      Assert.areNotEqual('Signed', recipient(requestId, 1).Status__c);
+    }
+
+    SignZeroSettings.cached.Allow_Signer_Placement__c = true;
+    SignZeroGatewayController.submitExecutedDocument(
+      TOKEN_A,
+      SIGNED_PDF,
+      null,
+      'Drawn',
+      'TestAgent',
+      '[{"page":1,"x":76.1,"y":607.35},{"page":0,"x":300,"y":80}]'
+    );
+    Assert.areEqual(
+      'Drawn on device, placed by the signer',
+      recipient(requestId, 1).Signature_Method__c
+    );
+    String details = [
+      SELECT Details__c
+      FROM SignZero_Audit_Trail__c
+      WHERE Event_Type__c = 'Signed'
+    ]
+    .Details__c;
+    Assert.isTrue(
+      details.endsWith('signer chose the places: page 2 at (76, 607), page 1 at (300, 80)'),
+      details
+    );
+  }
+
+  @IsTest
+  static void placeSignaturesScreenLoadsThePdf() {
+    useTestSettings();
+    Id pdfDoc = [SELECT ContentDocumentId FROM ContentVersion WHERE Title = 'MSA']
+    .ContentDocumentId;
+    Assert.areEqual(
+      EncodingUtil.base64Encode(Blob.valueOf('%PDF-1.4 original {{sig:Customer}}')),
+      SignZeroFieldLayout.loadDocument(pdfDoc)
+    );
+
+    ContentVersion txt = new ContentVersion(
+      Title = 'notes',
+      PathOnClient = 'notes.txt',
+      VersionData = Blob.valueOf('hi')
+    );
+    insert txt;
+    try {
+      SignZeroFieldLayout.loadDocument(
+        [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :txt.Id]
+        .ContentDocumentId
+      );
+      Assert.fail('a text file cannot be placed on');
+    } catch (AuraHandledException e) {
+      Assert.isTrue(e.getMessage().contains('only supports PDF'), e.getMessage());
     }
   }
 

@@ -14,12 +14,14 @@ Architecture diagrams live in [architecture](architecture/).
 
 1. **Send.** A user runs the **Send for Signature** Flow (a quick action on Account and Opportunity) or calls the
    **Dispatch Document via SignZero** invocable action. SignZero creates a *Signature Request* (the envelope), one
-   *Signature Recipient* per signer, and emails the first routing order a personal signing link.
+   *Signature Recipient* per signer, and emails the first routing order a personal signing link. When a signer's
+   role has no tag in the PDF, the flow's **Place Signatures** screen lets the sender drag them onto the pages (see
+   below).
    The flow also takes optional inputs for callers that already have the details: `contentVersionId` (the PDF) and
-   `documentTitle` skip choosing or uploading the document, and `signers` also skips the signers screen, so only
-   the sent or error screen is shown. SignZero sends the latest version of that ContentVersion's file.
+   `documentTitle` skip choosing or uploading the document, and `signers` also skips the signers and Place Signatures
+   screens, so only the sent or error screen is shown. SignZero sends the latest version of that ContentVersion's file.
 2. **Sign.** The signer opens `https://<site>/esign/?token=…`. The signing portal (`signZeroPortal`) shows the
-   document, finds the signer's spots from anchor tags in the PDF, asks for consent to sign electronically when they
+   document, finds the signer's spots (placed by the sender, or from anchor tags in the PDF), asks for consent to sign electronically when they
    first start signing (or before showing the document, with *Require Consent Before Viewing*), and lets them type,
    draw or upload a signature. Their signature is stamped into the PDF in the browser and submitted.
 3. **Progress.** Each submission raises a `SignZero_Event__e` platform event. `SignZeroProgressionJob` invites the next
@@ -48,8 +50,37 @@ Put tags in the document's text where signatures go. They are hidden from signer
 
 A role's name must match the signer's **Signer Role**, a picklist backed by the global value set **SignZero Signer
 Role** (Customer, Vendor, Employer, Employee). Add a value there for each new role used in your templates; the Send for
-Signature screen offers exactly those roles, and the invocable action rejects any other. If a signer has no tags, they
-get one spot at the bottom right of the last page.
+Signature screen offers exactly those roles, and the invocable action rejects any other. A signer with no tags and no
+places from the sender places their own signature (below).
+
+### Signers placing their own signature
+
+When a signer has no `{{sig:Role}}` tag and no place set by the sender (for example, an untagged PDF sent from
+automation), the signing page tells them so and **Place Your Signature** replaces Start Signing. The signer adopts a
+signature (type, draw or upload), then clicks the page where they sign. They can drag a placed signature to move it,
+remove it (its × button or the Delete key), and place more with **Add Another Signature**. Finish is available once at
+least one is placed. The places are stamped like tagged ones, and recorded as evidence: the audit trail's *Signed* event
+lists each page and position, and the signer's *Signature Method*, shown on the Certificate of Completion, ends in
+"placed by the signer". Turn this off with *Allow Signer Placement*; signers then get one spot at the bottom right of
+the last page.
+
+### Placing signatures when sending
+
+The **Place Signatures** screen (`signZeroFieldPlacer`) comes after the signers screen, unless every signer's role
+already has a `{{sig:Role}}` tag in the PDF: the signers screen reads the tags while the sender fills it in, says so,
+and Next then sends the document straight away. (If the tags cannot be read in time, the screen is shown.) It shows
+the PDF with every signer role's tags already placed, and the sender can:
+
+- drag a signer from the list onto a page (or select the signer, then click the page) to add a place;
+- drag a place to move it, or select it and nudge it with the arrow keys (Shift for bigger steps);
+- remove a place with its close button or the Delete key;
+- go back to the document's tags with **Reset to document tags**.
+
+If the sender changes nothing, nothing is stored and signers sign at their tags as usual. Otherwise the places are
+saved on the envelope as *Field Layout* (`Field_Layout__c`: JSON of `role`, `page` from 0, `x`, `y` for the bottom
+left of the signature area, and `height`, in PDF points), and the signing page uses them instead of the tags. The PDF
+itself is never changed; tags are still hidden and removed from the signed copy. A signer with no places places their own signature (below). Callers of the **Dispatch Document via SignZero** action can pass the same JSON
+as *Field Layout*; each role must belong to one of the signers. *Field Layout* is protected evidence like the hashes.
 
 ### Signing portal and the PDF host page
 
@@ -81,16 +112,16 @@ resources). Object labels stay business-friendly: *Signature Request*, *Signatur
 | Objects | `SignZero_Request__c` (envelope), `SignZero_Recipient__c` (signer), `SignZero_Audit_Trail__c` (append-only ledger) |
 | Configuration | `SignZero_Setting__mdt` (record `Default`), `SignZero_Diagnostics__c` (hierarchy custom setting), global value set `SignZero_Signer_Role` |
 | Events | `SignZero_Event__e` |
-| Apex | `SignZeroOrchestrator`, `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
+| Apex | `SignZeroOrchestrator`, `SignZeroFieldLayout` (loads the PDF for Place Signatures, checks and serves field layouts), `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
 | Triggers | `SignZeroRequestTrigger`, `SignZeroRecipientTrigger`, `SignZeroAuditTrailTrigger`, `SignZeroEventTrigger` |
-| Lightning web components | `signZeroPortal` (public signing page), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
+| Lightning web components | `signZeroPortal` (public signing page), `signZeroFieldPlacer` (Flow screen for placing signatures), `signZeroAnchorTags` (anchor tag reading shared by both), `signZeroPdfEngine` (the PDF host page for the Salesforce screens), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
 | Visualforce | `SignZeroCertificate` (Certificate of Completion, also rendered with `Blob.toPdf`) |
 | Static resource | `signZeroPdfHost` (host page, engine, PDF.js, pdf-lib) |
 | Flow | `SignZero_Send_for_Signature`, exposed as quick action `SignZero_Send_for_Signature` on Account and Opportunity |
 | Quick actions | `SignZero_Resend` on Signature Request and Signature Recipient, `SignZero_Recall` on Signature Request |
 | App and UI | Lightning app `SignZero`, home page `SignZero_Home`, record page `SignZero_Recipient_Record_Page`, reports in `SignZero_Reports`, dashboard `SignZero_Overview` |
 | Permission sets | `SignZero_User` (internal users), `SignZero_Guest` (site guest user) |
-| Labels | 124 Custom Labels (`SZ_…`, category *SignZero*) for all signer-facing text, the rich text on the Send for Signature flow screens and the errors people see in Salesforce. The flow's other text (screen titles, field labels, buttons) is translated with Translation Workbench. |
+| Labels | 226 Custom Labels (`SZ_…`, category *SignZero*) for all signer-facing text, the Add Signers and Place Signatures screens, the rich text on the Send for Signature flow screens and the errors people see in Salesforce. The flow's own text (screen titles, field labels, buttons) is translated with Translation Workbench. |
 | Notifications | Custom notification type `SignZero_Status_Update` |
 | Experience site | `SignZero` at `/esign`. Its content bundle is `digitalExperiences/site/SignZero1`: Salesforce adds the `1` because the site's underlying `CustomSite` already holds the name `SignZero`. |
 
@@ -167,6 +198,7 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 | Reminder Schedule | When the reminder job runs, as a Salesforce cron expression in the scheduling user's time zone (default `0 0 9 * * ?`, daily at 9:00; `0 0 9,15 * * ?` runs at 9:00 and 15:00). An invalid expression keeps the previous schedule |
 | Max Document Size KB | Largest PDF accepted (default 2000) |
 | Allow Reassignment | Lets signers delegate to someone else (default on) |
+| Allow Signer Placement | A signer with no tag and no place from the sender drags their signature onto the document (default on). Off: they sign at the bottom right of the last page |
 | Require Consent Before Viewing | Off (default): signers read the document first and accept the electronic record disclosure when they first start signing. On: the disclosure comes first, and the document is not sent to the signer's browser until they accept it; it then loads with a progress indicator. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act) |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
