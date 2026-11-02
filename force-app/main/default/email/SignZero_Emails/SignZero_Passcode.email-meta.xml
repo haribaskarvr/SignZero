@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <available>true</available>
+    <description>SignZero passcode email. Edit freely, or clone it and set the copy in SignZero Email Templates. Keep the [[...]] placeholders SignZero fills in; see the technical guide.</description>
+    <encodingKey>UTF-8</encodingKey>
+    <name>SignZero Passcode</name>
+    <style>none</style>
+    <subject>Your code to open [[DocumentName]]</subject>
+    <textOnly>Hello [[SignerName]],
+
+Use this code to open "[[DocumentName]]":
+
+[[Passcode]]
+
+The code expires in [[PasscodeMinutes]] minutes. If you did not ask for it, you can ignore this email: nobody can open the document without it.</textOnly>
+    <type>custom</type>
+    <uiType>Aloha</uiType>
+</EmailTemplate>

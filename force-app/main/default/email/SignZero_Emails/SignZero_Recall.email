@@ -1,0 +1,7 @@
+<html><body>
+[[Logo]]
+<p>Hello [[SignerName]],</p>
+<p>[[CompanyName]] has recalled <strong>[[DocumentName]]</strong>. The signing request is cancelled and any signing link you received for it no longer works.</p>
+<p>[[RecallReason]]</p>
+<p>No further action is needed from you.</p>
+</body></html>

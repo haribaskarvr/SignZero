@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EmailTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <available>true</available>
+    <description>SignZero reminder email. Edit freely, or clone it and set the copy in SignZero Email Templates. Keep the [[...]] placeholders SignZero fills in; see the technical guide.</description>
+    <encodingKey>UTF-8</encodingKey>
+    <name>SignZero Reminder</name>
+    <style>none</style>
+    <subject>Reminder: Review &amp; Sign [[DocumentName]]</subject>
+    <textOnly>Hello [[SignerName]],
+
+[[CompanyName]] is still waiting for you to review and sign "[[DocumentName]]".
+
+Open your secure signing session:
+[[SigningLink]]
+
+This link is personal to you and expires on [[ExpiresOn]]. Do not forward it. [[NewLinkNote]]</textOnly>
+    <type>custom</type>
+    <uiType>Aloha</uiType>
+</EmailTemplate>

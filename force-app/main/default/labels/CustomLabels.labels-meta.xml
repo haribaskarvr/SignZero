@@ -1808,4 +1808,220 @@
         <shortDescription>Logo or favicon editor: user cannot change branding</shortDescription>
         <value>Only an admin who can customize the application can change the logo or favicon.</value>
     </labels>
+    <labels>
+        <fullName>SZ_Passcode_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Verify it's you</shortDescription>
+        <value>Verify it's you</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>To protect this document, we'll email a one-time code to {0}.</shortDescription>
+        <value>To protect this document, we'll email a one-time code to {0}.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Send</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email me a code</shortDescription>
+        <value>Email me a code</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Sent</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>We emailed a {0}-digit code to {1}. It expires in {2} minutes.</shortDescription>
+        <value>We emailed a {0}-digit code to {1}. It expires in {2} minutes.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Label</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Code</shortDescription>
+        <value>Code</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Verify</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Verify</shortDescription>
+        <value>Verify</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Resend</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send a new code</shortDescription>
+        <value>Send a new code</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Passcode_Resend_Wait</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Send a new code in {0} s</shortDescription>
+        <value>Send a new code in {0} s</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Passcode_Wrong</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>That code isn't right. Tries left: {0}.</shortDescription>
+        <value>That code isn't right. Tries left: {0}.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Passcode_Expired</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>This code has expired or was entered wrongly too many times. Send a new code.</shortDescription>
+        <value>This code has expired or was entered wrongly too many times. Send a new code.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Passcode_Wait</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Please wait a minute before asking for another code.</shortDescription>
+        <value>Please wait a minute before asking for another code.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Passcode_Limit</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Too many codes were sent for this link. Ask the sender to resend your invitation</shortDescription>
+        <value>Too many codes were sent for this link. Ask the sender to resend your invitation.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Err_Passcode_Required</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Your verification has expired. Reload the page and verify again.</shortDescription>
+        <value>Your verification has expired. Reload the page and verify again.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Passcode_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Your code to open {0}</shortDescription>
+        <value>Your code to open {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Passcode_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Use this code to open {0}:</shortDescription>
+        <value>Use this code to open {0}:</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Passcode_Note</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>The code expires in {0} minutes. If you didn't ask for it, you can ignore this e</shortDescription>
+        <value>The code expires in {0} minutes. If you did not ask for it, you can ignore this email: nobody can open the document without it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_More_Actions</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>More actions</shortDescription>
+        <value>More actions</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Choose signers from this record’s contacts, or search for any contact.</shortDescription>
+        <value>Choose signers from this record’s contacts, or search for any contact.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Search</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Search contacts</shortDescription>
+        <value>Search contacts</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Search_Placeholder</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Name or email</shortDescription>
+        <value>Name or email</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_No_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>No contacts with an email address. Search for one, or add someone else below.</shortDescription>
+        <value>No contacts with an email address. Search for one, or add someone else below.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Col_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Title</shortDescription>
+        <value>Title</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Col_Account</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Account</shortDescription>
+        <value>Account</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Chosen</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Selected signers</shortDescription>
+        <value>Selected signers</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Add_Other</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Add someone else</shortDescription>
+        <value>Add someone else</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_None</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Choose a contact or add someone else to sign.</shortDescription>
+        <value>Choose a contact or add someone else to sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Signers_Err_Contacts</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Contacts could not be loaded. You can still add signers by hand.</shortDescription>
+        <value>Contacts could not be loaded. You can still add signers by hand.</value>
+    </labels>
 </CustomLabels>

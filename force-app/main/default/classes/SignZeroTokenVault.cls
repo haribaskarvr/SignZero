@@ -43,6 +43,18 @@ public without sharing class SignZeroTokenVault {
   }
 
   /**
+   * @description Hashes a short secret, such as a one-time passcode, with the org's key, so the stored hash cannot be
+   *   reversed by trying every possible code.
+   * @param value the secret
+   * @return HMAC-SHA256 of the value, as lower-case hex
+   */
+  public static String mac(String value) {
+    return EncodingUtil.convertToHex(
+      Crypto.generateMac('hmacSHA256', Blob.valueOf(value), key())
+    );
+  }
+
+  /**
    * @description Returns the org's encryption key, creating it the first time it is needed.
    * @return the AES-256 key
    */

@@ -20,10 +20,19 @@ Architecture diagrams live in [architecture](architecture/).
    The flow also takes optional inputs for callers that already have the details: `contentVersionId` (the PDF) and
    `documentTitle` skip choosing or uploading the document, and `signers` also skips the signers and Place Signatures
    screens, so only the sent or error screen is shown. SignZero sends the latest version of that ContentVersion's file.
+   On the signers screen the sender ticks signers in a table of the record's contacts: the record itself when it is a
+   Contact, the contacts of any Account it is or looks up to, any Contact it looks up to, and an Opportunity's contact
+   roles (`SignZeroContactPicker`, in user mode). A search box finds any other contact the sender can see, and **Add
+   someone else** types in a signer who is not a contact. A chosen contact's name and email are read-only; the sender
+   picks the role and routing order, and the signer keeps a link to the Contact (*Contact* on Signature Recipient).
+   For a record that reaches its account only indirectly (say, a custom object that looks up an Opportunity), set the
+   flow's optional `accountId` input, for example from a Get Records step: that account's contacts are offered too.
 2. **Sign.** The signer opens `https://<site>/esign/?token=…`. The signing portal (`signZeroPortal`) shows the
    document, finds the signer's spots (placed by the sender, or from anchor tags in the PDF), asks for consent to sign electronically when they
    first start signing (or before showing the document, with *Require Consent Before Viewing*), and lets them type,
    draw or upload a signature. Their signature is stamped into the PDF in the browser and submitted.
+   With *Require One-Time Passcode*, the signer first asks for a code emailed to them and enters it; nothing about
+   the document reaches their browser before that (see Security model).
 3. **Progress.** Each submission raises a `SignZero_Event__e` platform event. `SignZeroProgressionJob` invites the next
    routing order, or, when everyone has signed, seals the envelope.
 4. **Seal.** `SignZeroSealService` hashes the executed PDF, renders the Certificate of Completion, appends it as a
@@ -112,9 +121,9 @@ resources). Object labels stay business-friendly: *Signature Request*, *Signatur
 | Objects | `SignZero_Request__c` (envelope), `SignZero_Recipient__c` (signer), `SignZero_Audit_Trail__c` (append-only ledger) |
 | Configuration | `SignZero_Setting__mdt` (record `Default`), `SignZero_Diagnostics__c` (hierarchy custom setting), global value set `SignZero_Signer_Role` |
 | Events | `SignZero_Event__e` |
-| Apex | `SignZeroOrchestrator`, `SignZeroFieldLayout` (loads the PDF for Place Signatures, checks and serves field layouts), `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
+| Apex | `SignZeroOrchestrator`, `SignZeroFieldLayout` (loads the PDF for Place Signatures, checks and serves field layouts), `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroEmailTemplates` (signer emails from email templates), `SignZeroContactPicker` (contacts offered as signers), `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
 | Triggers | `SignZeroRequestTrigger`, `SignZeroRecipientTrigger`, `SignZeroAuditTrailTrigger`, `SignZeroEventTrigger` |
-| Lightning web components | `signZeroPortal` (public signing page), `signZeroFieldPlacer` (Flow screen for placing signatures), `signZeroAnchorTags` (anchor tag reading shared by both), `signZeroPdfEngine` (the PDF host page for the Salesforce screens), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
+| Lightning web components | `signZeroPortal` (public signing page), `signZeroFieldPlacer` (Flow screen for placing signatures), `signZeroAnchorTags` (anchor tag reading shared by both), `signZeroPdfEngine` (the PDF host page for the Salesforce screens), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers: tick the record's contacts or add someone by hand), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
 | Visualforce | `SignZeroCertificate` (Certificate of Completion, also rendered with `Blob.toPdf`) |
 | Static resource | `signZeroPdfHost` (host page, engine, PDF.js, pdf-lib) |
 | Flow | `SignZero_Send_for_Signature`, exposed as quick action `SignZero_Send_for_Signature` on Account and Opportunity |
@@ -200,6 +209,7 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 | Allow Reassignment | Lets signers delegate to someone else (default on) |
 | Allow Signer Placement | A signer with no tag and no place from the sender drags their signature onto the document (default on). Off: they sign at the bottom right of the last page |
 | Require Consent Before Viewing | Off (default): signers read the document first and accept the electronic record disclosure when they first start signing. On: the disclosure comes first, and the document is not sent to the signer's browser until they accept it; it then loads with a progress indicator. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act) |
+| Require One-Time Passcode | Off (default). On: signers must enter a 6-digit code emailed to them before the document is shown, including when they reopen a signed copy. Applies to envelopes sent after it is switched on, and to anyone they delegate to; the Certificate of Completion records it as their authentication |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
 
@@ -241,14 +251,43 @@ org-wide address) the sender's own email unverified. Send for Signature shows a 
 invitations would not arrive, and the SignZero Home page shows the current status (`SignZeroEmailCheck`,
 `signZeroEmailCheck`).
 
+**Signer email templates.** Every email a signer gets comes from a Classic email template in the **SignZero Emails**
+folder (Setup → Classic Email Templates): `SignZero_Invitation`, `SignZero_Reminder`, `SignZero_Final_Reminder`,
+`SignZero_Passcode`, `SignZero_Recall` and `SignZero_Completed`. Edit their subject, HTML and text as you like, or
+build your own and point **`SignZero_Email_Template__mdt`** (Setup → Custom Metadata Types → SignZero Email Template)
+at it: one record per email, whose *Template Name* is the template's unique name. SignZero reads the template as it is
+and fills in these placeholders by plain text replacement (`SignZeroEmailTemplates`), so it also works for the site
+guest user, who sends passcodes:
+
+| Placeholder | Value | Emails |
+|---|---|---|
+| `[[SignerName]]` | Signer's name | all but Completed |
+| `[[DocumentName]]` | Document title | all |
+| `[[CompanyName]]` | Company Name from SignZero Settings | all |
+| `[[Logo]]` | The logo as an image, or nothing (HTML only) | all |
+| `[[SigningLink]]` | The signer's personal link. **Required**: without it the built-in email is sent | Invitation, Reminder, Final Reminder |
+| `[[ValidDays]]` | Days a new link works | Invitation, reminders |
+| `[[ExpiresOn]]` | Date the link stops working, e.g. 9 November 2026 | Invitation, reminders |
+| `[[NewLinkNote]]` | "This is a new link…" on a reminder whose link replaced the old one; otherwise nothing | Reminders |
+| `[[Passcode]]` | The six-digit code. **Required** | Passcode |
+| `[[PasscodeMinutes]]` | Minutes the code works | Passcode |
+| `[[RecallReason]]` | "Reason: …" when the sender gave one; otherwise nothing | Recall |
+| `[[EnvelopeNumber]]` | e.g. SZ-000012 | Completed |
+
+Values are HTML-escaped in the HTML body. Salesforce merge fields (`{!…}`, `{{{…}}}`) are not filled in, because
+SignZero does not render templates through Salesforce. A blank *Template Name*, a template that is missing or
+inactive, or one without its required placeholder falls back to the built-in email worded by the Custom Labels below,
+and the reason is written to the debug log. Templates hold one language; the built-in emails follow the Custom Label
+translations. The sender's own notices are not templated.
+
 **`SignZero_Diagnostics__c`** (Setup → Custom Settings): **Performance Logs** writes the signing page's step timings
 to the browser console. Set it org-wide, or only on the site guest profile to diagnose signers.
 
 **`SignZero_Signer_Role`** (Setup → Picklist Value Sets): the signer roles. Each value's API name must match the
 `{{sig:Role}}` tags in your PDFs (matching ignores case).
 
-**Custom Labels** (category *SignZero*): reword or translate everything signers read, including the invitation,
-reminder, recall and completion emails, and the notices senders get. Labels that take values use `{0}`, `{1}`…
+**Custom Labels** (category *SignZero*): reword or translate everything signers read on the signing page, the built-in
+signer emails (used when no template applies) and the notices senders get. Labels that take values use `{0}`, `{1}`…
 placeholders; write apostrophes as ’ rather than ', because Apex drops a plain apostrophe from text with placeholders.
 
 ## Security model
@@ -264,6 +303,14 @@ placeholders; write apostrophes as ’ rather than ', because Apex drops a plain
   the key is, so treat the key like a password. Once SignZero is installed as a managed package, the protected
   setting is readable only by SignZero's code; in an unpackaged deploy, admins can read it. Deleting the key makes
   later reminders send new links.
+- **One-time passcode** (with *Require One-Time Passcode*). The choice is kept on each signer's *Auth Method* when the
+  envelope is sent. The signing page asks for a code with a button rather than on load, so email scanners that open
+  links do not trigger codes. `sendPasscode` emails a 6-digit code that works once, for 10 minutes; only an HMAC of
+  it, keyed with the `SignZero_Encryption__c` key and tied to the signer's current link, is stored. Five wrong
+  entries end the code; a link can ask for 10 codes, one a minute, and a resend from the sender starts again.
+  `verifyPasscode` answers a correct code with a random 256-bit session key, kept in the browser tab's
+  `sessionStorage` and sent with every later call; only its SHA-256 hash is stored, and it works for 12 hours. Every
+  request, sent code, wrong entry and verification is written to the audit trail.
 - `SignZeroRecordGuard` blocks manual edits and deletes of evidence fields (hashes, tokens, timestamps, signer
   status) from the UI, API and Data Loader; only SignZero's own processing may change them. Envelope status cannot be
   edited by hand either: to cancel an envelope, use **Recall Envelope**, so the links are closed, the signers told and

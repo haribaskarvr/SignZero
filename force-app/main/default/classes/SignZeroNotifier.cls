@@ -1,5 +1,6 @@
 /**
- * @description Sends SignZero emails: signing invitations to signers and status notices to envelope owners.
+ * @description Sends SignZero emails: signing invitations to signers and status notices to envelope owners. Each
+ *   signer email uses the admin's email template when one is set (SignZeroEmailTemplates), else the built-in one.
  */
 public without sharing class SignZeroNotifier {
   /**
@@ -38,61 +39,26 @@ public without sharing class SignZeroNotifier {
     for (Invitation inv : invitations) {
       Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
       mail.setToAddresses(new List<String>{ inv.email });
-      String subject = inv.finalReminder
-        ? System.Label.SZ_Mail_Final_Reminder_Subject
-        : inv.reminder
-            ? System.Label.SZ_Mail_Reminder_Subject
-            : System.Label.SZ_Mail_Invite_Subject;
-      mail.setSubject(fill(subject, new List<Object>{ inv.documentName }));
-      String intro = inv.reminder
-        ? System.Label.SZ_Mail_Reminder_Intro
-        : System.Label.SZ_Mail_Invite_Intro;
-      // Reminders give the date, since they may be read days later.
-      String footer = inv.reminder && inv.expiresAt != null
-        ? fill(
-            System.Label.SZ_Mail_Reminder_Expiry,
-            new List<Object>{ inv.expiresAt.format('d MMMM yyyy') }
-          )
-        : fill(
-            System.Label.SZ_Mail_Invite_Expiry,
-            new List<Object>{ SignZeroSettings.tokenValidityDays() }
-          );
-      if (inv.finalReminder) {
-        footer = System.Label.SZ_Mail_Final_Reminder_Note + ' ' + footer;
-      }
-      if (inv.newLink) {
-        footer += ' ' + System.Label.SZ_Mail_New_Link_Note;
-      }
-      mail.setHtmlBody(
-        logoHtml() +
-          paragraph(
-            System.Label.SZ_Mail_Greeting,
-            new List<Object>{ inv.recipientName }
-          ) +
-          paragraph(
-            intro,
-            new List<Object>{ company, strong(inv.documentName) }
-          ) +
-          '<p><a href="' +
-          inv.signingUrl +
-          '">' +
-          System.Label.SZ_Mail_Open_Link.escapeHtml4() +
-          '</a></p>' +
-          '<p style="color:#666;font-size:12px">' +
-          footer.escapeHtml4() +
-          '</p>'
+      Map<String, String> values = placeholders(inv, company);
+      values.put(SignZeroConstants.PLACEHOLDER_SIGNING_LINK, inv.signingUrl);
+      values.put(
+        SignZeroConstants.PLACEHOLDER_EXPIRES_ON,
+        inv.expiresAt == null ? '' : inv.expiresAt.format('d MMMM yyyy')
       );
-      mail.setPlainTextBody(
-        fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
-          '\n\n' +
-          fill(intro, new List<Object>{ company, '"' + inv.documentName + '"' }) +
-          '\n\n' +
-          System.Label.SZ_Mail_Open_Link +
-          ':\n' +
-          inv.signingUrl +
-          '\n\n' +
-          footer
+      values.put(
+        SignZeroConstants.PLACEHOLDER_VALID_DAYS,
+        String.valueOf(SignZeroSettings.tokenValidityDays())
       );
+      values.put(
+        SignZeroConstants.PLACEHOLDER_NEW_LINK_NOTE,
+        inv.newLink ? System.Label.SZ_Mail_New_Link_Note : ''
+      );
+      String emailType = inv.finalReminder
+        ? SignZeroConstants.EMAIL_FINAL_REMINDER
+        : inv.reminder ? SignZeroConstants.EMAIL_REMINDER : SignZeroConstants.EMAIL_INVITATION;
+      if (!SignZeroEmailTemplates.apply(mail, emailType, values)) {
+        writeInvitation(mail, inv, company);
+      }
       mail.setSaveAsActivity(false);
       if (fromAddressId != null) {
         mail.setOrgWideEmailAddressId(fromAddressId);
@@ -100,6 +66,146 @@ public without sharing class SignZeroNotifier {
       mails.add(mail);
     }
     send(mails);
+  }
+
+  /**
+   * @description Writes SignZero's built-in invitation or reminder.
+   * @param mail the email to fill
+   * @param inv the signer, link and kind of email
+   * @param company the company name from SignZero Settings
+   */
+  private static void writeInvitation(Messaging.SingleEmailMessage mail, Invitation inv, String company) {
+    String subject = inv.finalReminder
+      ? System.Label.SZ_Mail_Final_Reminder_Subject
+      : inv.reminder
+          ? System.Label.SZ_Mail_Reminder_Subject
+          : System.Label.SZ_Mail_Invite_Subject;
+    mail.setSubject(fill(subject, new List<Object>{ inv.documentName }));
+    String intro = inv.reminder
+      ? System.Label.SZ_Mail_Reminder_Intro
+      : System.Label.SZ_Mail_Invite_Intro;
+    // Reminders give the date, since they may be read days later.
+    String footer = inv.reminder && inv.expiresAt != null
+      ? fill(
+          System.Label.SZ_Mail_Reminder_Expiry,
+          new List<Object>{ inv.expiresAt.format('d MMMM yyyy') }
+        )
+      : fill(
+          System.Label.SZ_Mail_Invite_Expiry,
+          new List<Object>{ SignZeroSettings.tokenValidityDays() }
+        );
+    if (inv.finalReminder) {
+      footer = System.Label.SZ_Mail_Final_Reminder_Note + ' ' + footer;
+    }
+    if (inv.newLink) {
+      footer += ' ' + System.Label.SZ_Mail_New_Link_Note;
+    }
+    mail.setHtmlBody(
+      logoHtml() +
+        paragraph(
+          System.Label.SZ_Mail_Greeting,
+          new List<Object>{ inv.recipientName }
+        ) +
+        paragraph(
+          intro,
+          new List<Object>{ company, strong(inv.documentName) }
+        ) +
+        '<p><a href="' +
+        inv.signingUrl +
+        '">' +
+        System.Label.SZ_Mail_Open_Link.escapeHtml4() +
+        '</a></p>' +
+        '<p style="color:#666;font-size:12px">' +
+        footer.escapeHtml4() +
+        '</p>'
+    );
+    mail.setPlainTextBody(
+      fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        '\n\n' +
+        fill(intro, new List<Object>{ company, '"' + inv.documentName + '"' }) +
+        '\n\n' +
+        System.Label.SZ_Mail_Open_Link +
+        ':\n' +
+        inv.signingUrl +
+        '\n\n' +
+        footer
+    );
+  }
+
+  /**
+   * @description The placeholders every signer email can use.
+   * @param inv the signer and document
+   * @param company the company name from SignZero Settings
+   * @return placeholder name to value
+   */
+  private static Map<String, String> placeholders(Invitation inv, String company) {
+    return new Map<String, String>{
+      SignZeroConstants.PLACEHOLDER_SIGNER_NAME => inv.recipientName,
+      SignZeroConstants.PLACEHOLDER_DOCUMENT_NAME => inv.documentName,
+      SignZeroConstants.PLACEHOLDER_COMPANY_NAME => company,
+      SignZeroConstants.PLACEHOLDER_LOGO => logoHtml()
+    };
+  }
+
+  /**
+   * @description Emails a signer the one-time passcode that opens their document.
+   * @param inv the signer and document (the signing URL is not used)
+   * @param code the passcode
+   */
+  public static void sendPasscode(Invitation inv, String code) {
+    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+    mail.setToAddresses(new List<String>{ inv.email });
+    Map<String, String> values = placeholders(inv, SignZeroSettings.branding().get('companyName'));
+    values.put(SignZeroConstants.PLACEHOLDER_PASSCODE, code);
+    values.put(
+      SignZeroConstants.PLACEHOLDER_PASSCODE_MINUTES,
+      String.valueOf(SignZeroConstants.PASSCODE_VALID_MINUTES)
+    );
+    if (!SignZeroEmailTemplates.apply(mail, SignZeroConstants.EMAIL_PASSCODE, values)) {
+      writePasscode(mail, inv, code);
+    }
+    mail.setSaveAsActivity(false);
+    Id fromAddressId = orgWideAddressId();
+    if (fromAddressId != null) {
+      mail.setOrgWideEmailAddressId(fromAddressId);
+    }
+    send(new List<Messaging.SingleEmailMessage>{ mail });
+  }
+
+  /**
+   * @description Writes SignZero's built-in passcode email.
+   * @param mail the email to fill
+   * @param inv the signer and document
+   * @param code the passcode
+   */
+  private static void writePasscode(Messaging.SingleEmailMessage mail, Invitation inv, String code) {
+    mail.setSubject(
+      fill(System.Label.SZ_Mail_Passcode_Subject, new List<Object>{ inv.documentName })
+    );
+    String note = fill(
+      System.Label.SZ_Mail_Passcode_Note,
+      new List<Object>{ SignZeroConstants.PASSCODE_VALID_MINUTES }
+    );
+    mail.setHtmlBody(
+      logoHtml() +
+        paragraph(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        paragraph(System.Label.SZ_Mail_Passcode_Intro, new List<Object>{ strong(inv.documentName) }) +
+        '<p style="font-size:28px;font-weight:bold;letter-spacing:6px">' +
+        code +
+        '</p>' +
+        '<p style="color:#666;font-size:12px">' +
+        note.escapeHtml4() +
+        '</p>'
+    );
+    mail.setPlainTextBody(
+      fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        '\n\n' +
+        fill(System.Label.SZ_Mail_Passcode_Intro, new List<Object>{ '"' + inv.documentName + '"' }) +
+        '\n\n' +
+        code +
+        '\n\n' +
+        note
+    );
   }
 
   /**
@@ -121,41 +227,14 @@ public without sharing class SignZeroNotifier {
     for (Invitation inv : recipients) {
       Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
       mail.setToAddresses(new List<String>{ inv.email });
-      mail.setSubject(
-        fill(
-          System.Label.SZ_Mail_Recall_Subject,
-          new List<Object>{ inv.documentName }
-        )
+      Map<String, String> values = placeholders(inv, company);
+      values.put(
+        SignZeroConstants.PLACEHOLDER_RECALL_REASON,
+        String.isBlank(reason) ? '' : fill(System.Label.SZ_Mail_Reason, new List<Object>{ reason })
       );
-      mail.setHtmlBody(
-        logoHtml() +
-          paragraph(
-            System.Label.SZ_Mail_Greeting,
-            new List<Object>{ inv.recipientName }
-          ) +
-          paragraph(
-            System.Label.SZ_Mail_Recall_Intro,
-            new List<Object>{ company, strong(inv.documentName) }
-          ) +
-          (String.isBlank(reason)
-            ? ''
-            : paragraph(System.Label.SZ_Mail_Reason, new List<Object>{ reason })) +
-          paragraph(System.Label.SZ_Mail_No_Action, new List<Object>())
-      );
-      mail.setPlainTextBody(
-        fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
-          '\n\n' +
-          fill(
-            System.Label.SZ_Mail_Recall_Intro,
-            new List<Object>{ company, '"' + inv.documentName + '"' }
-          ) +
-          '\n\n' +
-          (String.isBlank(reason)
-            ? ''
-            : fill(System.Label.SZ_Mail_Reason, new List<Object>{ reason }) +
-              '\n\n') +
-          System.Label.SZ_Mail_No_Action
-      );
+      if (!SignZeroEmailTemplates.apply(mail, SignZeroConstants.EMAIL_RECALL, values)) {
+        writeCancellation(mail, inv, company, reason);
+      }
       mail.setSaveAsActivity(false);
       if (fromAddressId != null) {
         mail.setOrgWideEmailAddressId(fromAddressId);
@@ -163,6 +242,56 @@ public without sharing class SignZeroNotifier {
       mails.add(mail);
     }
     send(mails);
+  }
+
+  /**
+   * @description Writes SignZero's built-in recall notice.
+   * @param mail the email to fill
+   * @param inv the signer and document
+   * @param company the company name from SignZero Settings
+   * @param reason the sender's reason, or blank
+   */
+  private static void writeCancellation(
+    Messaging.SingleEmailMessage mail,
+    Invitation inv,
+    String company,
+    String reason
+  ) {
+    mail.setSubject(
+      fill(
+        System.Label.SZ_Mail_Recall_Subject,
+        new List<Object>{ inv.documentName }
+      )
+    );
+    mail.setHtmlBody(
+      logoHtml() +
+        paragraph(
+          System.Label.SZ_Mail_Greeting,
+          new List<Object>{ inv.recipientName }
+        ) +
+        paragraph(
+          System.Label.SZ_Mail_Recall_Intro,
+          new List<Object>{ company, strong(inv.documentName) }
+        ) +
+        (String.isBlank(reason)
+          ? ''
+          : paragraph(System.Label.SZ_Mail_Reason, new List<Object>{ reason })) +
+        paragraph(System.Label.SZ_Mail_No_Action, new List<Object>())
+    );
+    mail.setPlainTextBody(
+      fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        '\n\n' +
+        fill(
+          System.Label.SZ_Mail_Recall_Intro,
+          new List<Object>{ company, '"' + inv.documentName + '"' }
+        ) +
+        '\n\n' +
+        (String.isBlank(reason)
+          ? ''
+          : fill(System.Label.SZ_Mail_Reason, new List<Object>{ reason }) +
+            '\n\n') +
+        System.Label.SZ_Mail_No_Action
+    );
   }
 
   /**
@@ -205,28 +334,37 @@ public without sharing class SignZeroNotifier {
       String company = SignZeroSettings.branding().get('companyName');
       Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
       mail.setToAddresses(to);
-      mail.setSubject(fill(System.Label.SZ_Mail_Completed_Subject, document));
-      mail.setPlainTextBody(
-        fill(
-          System.Label.SZ_Mail_Completed_Intro,
-          new List<Object>{ req.Document_Name__c, req.Name }
-        ) +
-          '\n\n' +
-          System.Label.SZ_Mail_Completed_Attached +
-          '\n\n' +
-          company
-      );
-      mail.setHtmlBody(
-        logoHtml() +
-          paragraph(
+      // One email to every signer, so there is no signer name to fill in.
+      Map<String, String> values = new Map<String, String>{
+        SignZeroConstants.PLACEHOLDER_DOCUMENT_NAME => req.Document_Name__c,
+        SignZeroConstants.PLACEHOLDER_ENVELOPE_NUMBER => req.Name,
+        SignZeroConstants.PLACEHOLDER_COMPANY_NAME => company,
+        SignZeroConstants.PLACEHOLDER_LOGO => logoHtml()
+      };
+      if (!SignZeroEmailTemplates.apply(mail, SignZeroConstants.EMAIL_COMPLETED, values)) {
+        mail.setSubject(fill(System.Label.SZ_Mail_Completed_Subject, document));
+        mail.setPlainTextBody(
+          fill(
             System.Label.SZ_Mail_Completed_Intro,
             new List<Object>{ req.Document_Name__c, req.Name }
           ) +
-          paragraph(System.Label.SZ_Mail_Completed_Attached, new List<Object>()) +
-          '<p>' +
-          company.escapeHtml4() +
-          '</p>'
-      );
+            '\n\n' +
+            System.Label.SZ_Mail_Completed_Attached +
+            '\n\n' +
+            company
+        );
+        mail.setHtmlBody(
+          logoHtml() +
+            paragraph(
+              System.Label.SZ_Mail_Completed_Intro,
+              new List<Object>{ req.Document_Name__c, req.Name }
+            ) +
+            paragraph(System.Label.SZ_Mail_Completed_Attached, new List<Object>()) +
+            '<p>' +
+            company.escapeHtml4() +
+            '</p>'
+        );
+      }
       mail.setFileAttachments(files);
       mail.setSaveAsActivity(false);
       Id fromAddressId = orgWideAddressId();

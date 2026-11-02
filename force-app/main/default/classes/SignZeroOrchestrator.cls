@@ -149,6 +149,7 @@ public with sharing class SignZeroOrchestrator {
     }
     update as system envelopes;
 
+    String authMethod = SignZeroSettings.signerAuthMethod();
     List<SignZero_Recipient__c> recipients = new List<SignZero_Recipient__c>();
     for (Integer i = 0; i < envelopes.size(); i++) {
       for (SignZeroSigner s : signersPerEnvelope[i]) {
@@ -157,11 +158,12 @@ public with sharing class SignZeroOrchestrator {
             SignZero_Request__c = envelopes[i].Id,
             Name = s.name.left(80),
             Email__c = s.email,
+            Contact__c = s.contactId,
             Signer_Role__c = s.role,
             Routing_Order__c = s.routingOrder,
             List_Order__c = s.routingOrder,
             Status__c = SignZeroConstants.SIGNER_PENDING,
-            Auth_Method__c = SignZeroConstants.AUTH_TOKEN_LINK
+            Auth_Method__c = authMethod
           )
         );
       }
@@ -283,14 +285,14 @@ public with sharing class SignZeroOrchestrator {
     if (req.additionalSigners != null) {
       Integer nextOrder = signers.size() + 1;
       for (SignZeroSigner s : req.additionalSigners) {
-        signers.add(
-          new SignZeroSigner(
-            s.name,
-            s.email,
-            s.role,
-            s.routingOrder != null ? s.routingOrder : nextOrder
-          )
+        SignZeroSigner copy = new SignZeroSigner(
+          s.name,
+          s.email,
+          s.role,
+          s.routingOrder != null ? s.routingOrder : nextOrder
         );
+        copy.contactId = s.contactId;
+        signers.add(copy);
         nextOrder++;
       }
     }

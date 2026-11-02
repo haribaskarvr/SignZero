@@ -7,23 +7,23 @@ public without sharing class SignZeroGatewayController {
    * @description Opens the signing page. Signers who already signed can reopen their link read-only until it expires.
    * @param rawToken the token from the signing link
    * @param userAgent the signer's browser, for the audit trail
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
    * @return the document (Base64), signer and envelope details, settings and branding. With Require Consent Before
-   *   Viewing on and no consent yet, the document is left out and consentBeforeViewing is true.
+   *   Viewing on and no consent yet, the document is left out and consentBeforeViewing is true. When the signer must
+   *   still enter a passcode, only passcodeRequired, where the code goes and branding are returned.
    */
   @AuraEnabled
   public static Map<String, Object> initializeSession(
     String rawToken,
-    String userAgent
+    String userAgent,
+    String passcodeSession
   ) {
-    SignZero_Recipient__c recipient = findRecipient(rawToken);
+    SignZero_Recipient__c recipient = findOpenableRecipient(rawToken);
     String envelopeStatus = recipient.SignZero_Request__r.Status__c;
     Boolean readOnly = !isSignable(recipient);
-    if (
-      readOnly &&
-      !(recipient.Status__c == SignZeroConstants.SIGNER_SIGNED &&
-      envelopeStatus != SignZeroConstants.ENVELOPE_VOIDED)
-    ) {
-      throw fail(System.Label.SZ_Err_Invalid_Session);
+    if (!passcodeVerified(recipient, passcodeSession)) {
+      // Nothing about the document leaves Salesforce until the signer enters the code emailed to them.
+      return passcodeChallenge(recipient);
     }
     // Consent first: no part of the document leaves Salesforce until the signer accepts the disclosure.
     Boolean consentFirst =
@@ -121,10 +121,15 @@ public without sharing class SignZeroGatewayController {
    * @description Records that the signer accepted the ESIGN/UETA disclosure. Accepting again does nothing.
    * @param rawToken the token from the signing link
    * @param userAgent the signer's browser, for the audit trail
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
    */
   @AuraEnabled
-  public static void recordConsent(String rawToken, String userAgent) {
-    SignZero_Recipient__c recipient = openRecipient(rawToken);
+  public static void recordConsent(
+    String rawToken,
+    String userAgent,
+    String passcodeSession
+  ) {
+    SignZero_Recipient__c recipient = openRecipient(rawToken, passcodeSession);
     if (recipient.Consented_At__c != null) {
       return;
     }
@@ -154,6 +159,7 @@ public without sharing class SignZeroGatewayController {
    * @param userAgent the signer's browser, for the audit trail
    * @param signerPlacements where the signer chose to put their signature, as JSON [{page, x, y}] in PDF points;
    *   blank when they signed at tags or places set by the sender
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
    * @return isFinalSigner: true when this signature completes the envelope
    */
   @AuraEnabled
@@ -163,9 +169,10 @@ public without sharing class SignZeroGatewayController {
     String signatureImageBase64,
     String signatureMethod,
     String userAgent,
-    String signerPlacements
+    String signerPlacements,
+    String passcodeSession
   ) {
-    SignZero_Recipient__c recipient = openRecipient(rawToken);
+    SignZero_Recipient__c recipient = openRecipient(rawToken, passcodeSession);
     if (recipient.Consented_At__c == null) {
       throw fail(System.Label.SZ_Err_Consent_Required);
     }
@@ -272,14 +279,16 @@ public without sharing class SignZeroGatewayController {
    * @param rawToken the token from the signing link
    * @param reason why, shown to the sender (optional)
    * @param userAgent the signer's browser, for the audit trail
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
    */
   @AuraEnabled
   public static void declineToSign(
     String rawToken,
     String reason,
-    String userAgent
+    String userAgent,
+    String passcodeSession
   ) {
-    SignZero_Recipient__c recipient = openRecipient(rawToken);
+    SignZero_Recipient__c recipient = openRecipient(rawToken, passcodeSession);
     String ip = SignZeroAuditService.clientIp();
     recipient.Status__c = SignZeroConstants.SIGNER_DECLINED;
     recipient.Decline_Reason__c = reason == null ? null : reason.left(2000);
@@ -313,6 +322,7 @@ public without sharing class SignZeroGatewayController {
    * @param email the new signer's email address
    * @param reason why, shown to the sender (optional)
    * @param userAgent the signer's browser, for the audit trail
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
    */
   @AuraEnabled
   public static void reassign(
@@ -320,9 +330,10 @@ public without sharing class SignZeroGatewayController {
     String name,
     String email,
     String reason,
-    String userAgent
+    String userAgent,
+    String passcodeSession
   ) {
-    SignZero_Recipient__c recipient = openRecipient(rawToken);
+    SignZero_Recipient__c recipient = openRecipient(rawToken, passcodeSession);
     if (!SignZeroSettings.allowReassignment()) {
       throw fail(System.Label.SZ_Generic_Error);
     }
@@ -347,7 +358,8 @@ public without sharing class SignZeroGatewayController {
         : recipient.List_Order__c) + 0.01,
       Delegated_From__c = recipient.Id,
       Status__c = SignZeroConstants.SIGNER_PENDING,
-      Auth_Method__c = SignZeroConstants.AUTH_TOKEN_LINK
+      // The delegate is checked the same way as the signer they replace.
+      Auth_Method__c = recipient.Auth_Method__c
     );
     insert as system delegate;
 
@@ -381,10 +393,218 @@ public without sharing class SignZeroGatewayController {
   }
 
   /**
-   * @description Finds the recipient whose link may sign or decline right now.
+   * @description Emails the signer a one-time passcode for their link. Signers ask for it on the signing page, so
+   *   email scanners that open links do not trigger codes. A new code replaces the previous one.
    * @param rawToken the token from the signing link
-   * @return the recipient, with their envelope; throws when the link cannot sign
+   * @param userAgent the signer's browser, for the audit trail
+   * @return maskedEmail: where the code went; resendSeconds: how long until another code can be asked for
    */
+  @AuraEnabled
+  public static Map<String, Object> sendPasscode(String rawToken, String userAgent) {
+    SignZero_Recipient__c recipient = findOpenableRecipient(rawToken);
+    if (!requiresPasscode(recipient)) {
+      throw fail(System.Label.SZ_Generic_Error);
+    }
+    Datetime now = Datetime.now();
+    if (
+      recipient.Passcode_Sent_At__c != null &&
+      recipient.Passcode_Sent_At__c.addSeconds(SignZeroConstants.PASSCODE_RESEND_SECONDS) > now
+    ) {
+      throw fail(System.Label.SZ_Err_Passcode_Wait);
+    }
+    Integer sends = recipient.Passcode_Sends__c == null ? 0 : recipient.Passcode_Sends__c.intValue();
+    if (sends >= SignZeroConstants.PASSCODE_MAX_SENDS) {
+      throw fail(System.Label.SZ_Err_Passcode_Limit);
+    }
+
+    // Uniform enough over 10^6 values: a 64-bit random number's modulo bias is negligible.
+    Long range = Math.pow(10, SignZeroConstants.PASSCODE_DIGITS).longValue();
+    String code = String.valueOf(Math.abs(Math.mod(Crypto.getRandomLong(), range)))
+      .leftPad(SignZeroConstants.PASSCODE_DIGITS, '0');
+    String ip = SignZeroAuditService.clientIp();
+    recipient.Passcode_Hash__c = passcodeHash(recipient, code);
+    recipient.Passcode_Expires_At__c = now.addMinutes(SignZeroConstants.PASSCODE_VALID_MINUTES);
+    recipient.Passcode_Attempts__c = 0;
+    recipient.Passcode_Sends__c = sends + 1;
+    recipient.Passcode_Sent_At__c = now;
+    recipient.Last_Known_IP__c = ip;
+    update as system recipient;
+
+    SignZeroAuditService.Entry e = new SignZeroAuditService.Entry(
+      recipient.Id,
+      recipient.SignZero_Request__c,
+      SignZeroConstants.EVENT_PASSCODE_SENT
+    );
+    e.ipAddress = ip;
+    e.userAgent = userAgent;
+    e.details = ('One-time passcode emailed to ' + recipient.Email__c).left(255);
+    SignZeroAuditService.logOne(e);
+
+    SignZeroNotifier.Invitation inv = new SignZeroNotifier.Invitation();
+    inv.email = recipient.Email__c;
+    inv.recipientName = recipient.Name;
+    inv.documentName = recipient.SignZero_Request__r.Document_Name__c;
+    SignZeroNotifier.sendPasscode(inv, code);
+
+    return new Map<String, Object>{
+      'maskedEmail' => maskEmail(recipient.Email__c),
+      'resendSeconds' => SignZeroConstants.PASSCODE_RESEND_SECONDS
+    };
+  }
+
+  /**
+   * @description Checks a one-time passcode. A wrong code is counted and the answer says so instead of throwing, so the
+   *   count is saved; after too many wrong entries the code stops working.
+   * @param rawToken the token from the signing link
+   * @param code what the signer entered
+   * @param userAgent the signer's browser, for the audit trail
+   * @return verified; with a correct code, passcodeSession: the key the signing page sends with every later call;
+   *   with a wrong one, triesLeft (0 when a new code is needed)
+   */
+  @AuraEnabled
+  public static Map<String, Object> verifyPasscode(
+    String rawToken,
+    String code,
+    String userAgent
+  ) {
+    SignZero_Recipient__c recipient = findOpenableRecipient(rawToken);
+    if (!requiresPasscode(recipient)) {
+      throw fail(System.Label.SZ_Generic_Error);
+    }
+    Integer attempts = recipient.Passcode_Attempts__c == null ? 0 : recipient.Passcode_Attempts__c.intValue();
+    if (
+      recipient.Passcode_Hash__c == null ||
+      recipient.Passcode_Expires_At__c == null ||
+      recipient.Passcode_Expires_At__c < Datetime.now() ||
+      attempts >= SignZeroConstants.PASSCODE_MAX_ATTEMPTS
+    ) {
+      throw fail(System.Label.SZ_Err_Passcode_Expired);
+    }
+
+    String ip = SignZeroAuditService.clientIp();
+    code = code == null ? '' : code.deleteWhitespace();
+    SignZeroAuditService.Entry e = new SignZeroAuditService.Entry(
+      recipient.Id,
+      recipient.SignZero_Request__c,
+      SignZeroConstants.EVENT_PASSCODE_VERIFIED
+    );
+    e.ipAddress = ip;
+    e.userAgent = userAgent;
+    Map<String, Object> result = new Map<String, Object>();
+    recipient.Last_Known_IP__c = ip;
+    if (
+      Pattern.matches('[0-9]{' + SignZeroConstants.PASSCODE_DIGITS + '}', code) &&
+      passcodeHash(recipient, code) == recipient.Passcode_Hash__c
+    ) {
+      String passcodeSession = EncodingUtil.convertToHex(Crypto.generateAesKey(256));
+      // A code works once.
+      recipient.Passcode_Hash__c = null;
+      recipient.Passcode_Expires_At__c = null;
+      recipient.Passcode_Session_Hash__c = SignZeroInvitationService.hashToken(passcodeSession);
+      recipient.Passcode_Verified_At__c = Datetime.now();
+      e.details = 'Signer entered the one-time passcode emailed to ' + recipient.Email__c;
+      result.put('verified', true);
+      result.put('passcodeSession', passcodeSession);
+    } else {
+      attempts++;
+      recipient.Passcode_Attempts__c = attempts;
+      Integer triesLeft = SignZeroConstants.PASSCODE_MAX_ATTEMPTS - attempts;
+      if (triesLeft <= 0) {
+        recipient.Passcode_Hash__c = null;
+      }
+      e.eventType = SignZeroConstants.EVENT_PASSCODE_FAILED;
+      e.details = 'Wrong one-time passcode entered (' + attempts + ' of ' +
+        SignZeroConstants.PASSCODE_MAX_ATTEMPTS + ')';
+      result.put('verified', false);
+      result.put('triesLeft', triesLeft);
+    }
+    update as system recipient;
+    SignZeroAuditService.logOne(e);
+    return result;
+  }
+
+  /**
+   * @description Builds the answer to a signing page that must first ask for a passcode: nothing about the document.
+   * @param recipient the signer
+   * @return passcodeRequired, where the code goes, whether a code is already waiting, and branding
+   */
+  private static Map<String, Object> passcodeChallenge(SignZero_Recipient__c recipient) {
+    Datetime now = Datetime.now();
+    Integer resendIn = 0;
+    if (recipient.Passcode_Sent_At__c != null) {
+      Long waitMs =
+        recipient.Passcode_Sent_At__c.addSeconds(SignZeroConstants.PASSCODE_RESEND_SECONDS).getTime() -
+        now.getTime();
+      resendIn = Math.max(0, Math.ceil(waitMs / 1000.0).intValue());
+    }
+    return new Map<String, Object>{
+      'passcodeRequired' => true,
+      'recipientName' => recipient.Name,
+      'maskedEmail' => maskEmail(recipient.Email__c),
+      // A code already sent and still usable, e.g. after a reload: the page goes straight to entering it.
+      'passcodeSent' => recipient.Passcode_Hash__c != null &&
+        recipient.Passcode_Expires_At__c != null &&
+        recipient.Passcode_Expires_At__c > now,
+      'resendSeconds' => resendIn,
+      'passcodeDigits' => SignZeroConstants.PASSCODE_DIGITS,
+      'passcodeValidMinutes' => SignZeroConstants.PASSCODE_VALID_MINUTES,
+      'performanceLogs' => SignZeroSettings.performanceLogs(),
+      'pdfHostVersion' => SignZeroSettings.pdfHostVersion(),
+      'branding' => SignZeroSettings.branding()
+    };
+  }
+
+  /**
+   * @description Whether the signer must enter a one-time passcode, as decided when the envelope was sent.
+   * @param r the recipient (Auth_Method__c)
+   * @return true for a link and passcode signer
+   */
+  private static Boolean requiresPasscode(SignZero_Recipient__c r) {
+    return r.Auth_Method__c == SignZeroConstants.AUTH_LINK_AND_PASSCODE;
+  }
+
+  /**
+   * @description Whether the signing page may act for the signer: no passcode is needed, or it sent the key from a
+   *   correct passcode within the last PASSCODE_SESSION_HOURS.
+   * @param r the recipient
+   * @param passcodeSession the key from verifyPasscode
+   * @return true when the signer is verified
+   */
+  private static Boolean passcodeVerified(SignZero_Recipient__c r, String passcodeSession) {
+    if (!requiresPasscode(r)) {
+      return true;
+    }
+    return String.isNotBlank(passcodeSession) &&
+      Pattern.matches('[0-9a-f]{64}', passcodeSession) &&
+      r.Passcode_Session_Hash__c == SignZeroInvitationService.hashToken(passcodeSession) &&
+      r.Passcode_Verified_At__c != null &&
+      r.Passcode_Verified_At__c.addHours(SignZeroConstants.PASSCODE_SESSION_HOURS) > Datetime.now();
+  }
+
+  /**
+   * @description Hashes a passcode with the org key, tied to the signer and their current link, so a stored hash
+   *   neither reveals the code nor works for anyone else.
+   * @param r the recipient (Id, Token_Hash__c)
+   * @param code the six digits
+   * @return the keyed hash
+   */
+  private static String passcodeHash(SignZero_Recipient__c r, String code) {
+    return SignZeroTokenVault.mac(r.Id + ':' + r.Token_Hash__c + ':' + code);
+  }
+
+  /**
+   * @description Shows enough of an email address for the signer to recognise it: c***@example.com.
+   * @param email the address
+   * @return the masked address
+   */
+  @TestVisible
+  private static String maskEmail(String email) {
+    if (String.isBlank(email) || !email.contains('@')) {
+      return '';
+    }
+    return email.left(1) + '***' + email.substring(email.lastIndexOf('@'));
+  }
+
   /**
    * @description Checks the places a signer chose for their signature and describes them for the audit trail.
    * @param signerPlacements JSON [{page, x, y}] from the signing page; blank when the signer did not choose
@@ -423,9 +643,32 @@ public without sharing class SignZeroGatewayController {
     return String.join(described, ', ').left(1000);
   }
 
-  private static SignZero_Recipient__c openRecipient(String rawToken) {
+  /**
+   * @description Finds the recipient whose link may sign or decline right now.
+   * @param rawToken the token from the signing link
+   * @param passcodeSession the key from verifyPasscode, when the signer must enter a one-time passcode
+   * @return the recipient, with their envelope; throws when the link cannot sign or the signer is not verified
+   */
+  private static SignZero_Recipient__c openRecipient(String rawToken, String passcodeSession) {
     SignZero_Recipient__c r = findRecipient(rawToken);
     if (!isSignable(r)) {
+      throw fail(System.Label.SZ_Err_Invalid_Session);
+    }
+    if (!passcodeVerified(r, passcodeSession)) {
+      throw fail(System.Label.SZ_Err_Passcode_Required);
+    }
+    return r;
+  }
+
+  /**
+   * @description Finds the recipient whose link may open the signing page: to sign, or read-only after signing.
+   * @param rawToken the token from the signing link
+   * @return the recipient, with their envelope; throws when the link cannot open the page
+   */
+  private static SignZero_Recipient__c findOpenableRecipient(String rawToken) {
+    SignZero_Recipient__c r = findRecipient(rawToken);
+    // Recalled envelopes were already refused by findRecipient.
+    if (!isSignable(r) && r.Status__c != SignZeroConstants.SIGNER_SIGNED) {
       throw fail(System.Label.SZ_Err_Invalid_Session);
     }
     return r;
@@ -466,6 +709,15 @@ public without sharing class SignZeroGatewayController {
         Viewed_At__c,
         Consented_At__c,
         Signed_At__c,
+        Token_Hash__c,
+        Auth_Method__c,
+        Passcode_Hash__c,
+        Passcode_Expires_At__c,
+        Passcode_Attempts__c,
+        Passcode_Sends__c,
+        Passcode_Sent_At__c,
+        Passcode_Session_Hash__c,
+        Passcode_Verified_At__c,
         SignZero_Request__c,
         SignZero_Request__r.Name,
         SignZero_Request__r.Status__c,

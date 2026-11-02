@@ -15,6 +15,9 @@ public inherited sharing class SignZeroSigner {
   /** @description When they sign; signers with the same order sign in parallel. */
   @AuraEnabled
   public Integer routingOrder;
+  /** @description The Contact the signer was chosen from; blank for someone typed in by hand. */
+  @AuraEnabled
+  public Id contactId;
 
   /**
    * @description Creates an empty signer, for Flow to fill in.

@@ -1,0 +1,7 @@
+<html><body>
+[[Logo]]
+<p>Hello [[SignerName]],</p>
+<p>[[CompanyName]] is still waiting for you to review and sign <strong>[[DocumentName]]</strong>.</p>
+<p><a href="[[SigningLink]]">Open your secure signing session</a></p>
+<p style="color:#666;font-size:12px">This link is personal to you and expires on [[ExpiresOn]]. Do not forward it. [[NewLinkNote]]</p>
+</body></html>

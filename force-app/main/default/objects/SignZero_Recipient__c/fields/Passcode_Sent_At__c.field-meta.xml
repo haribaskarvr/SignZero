@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Passcode_Sent_At__c</fullName>
+    <description>When the signer was last emailed a one-time passcode.</description>
+    <inlineHelpText>When the signer was last emailed a one-time passcode.</inlineHelpText>
+    <label>Passcode Sent At</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>DateTime</type>
+</CustomField>

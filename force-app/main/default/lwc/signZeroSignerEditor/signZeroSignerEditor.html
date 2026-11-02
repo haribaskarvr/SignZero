@@ -1,15 +1,32 @@
 <template>
     <div class="slds-text-heading_small slds-m-bottom_x-small">{labels.title}</div>
     <p class="slds-text-color_weak slds-m-bottom_small">{helpText}</p>
+
+    <!-- Contacts: ticking one adds them as a signer below. -->
+    <p class="slds-m-bottom_x-small">{labels.contacts}</p>
+    <lightning-input class="slds-m-bottom_x-small" type="search" label={labels.search} variant="label-hidden"
+        placeholder={labels.searchPlaceholder} value={searchTerm} onchange={handleSearch}></lightning-input>
+    <template lwc:if={hasContacts}>
+        <div class="contact-table slds-m-bottom_medium">
+            <lightning-datatable key-field="id" data={contacts} columns={columns} selected-rows={selectedContactIds}
+                onrowselection={handleContactSelection} resize-column-disabled></lightning-datatable>
+        </div>
+    </template>
+    <template lwc:elseif={contactsLoaded}>
+        <p class="slds-text-color_weak slds-m-bottom_medium">{labels.noContacts}</p>
+    </template>
+
+    <div class="slds-text-title_caps slds-m-bottom_x-small">{labels.chosen}</div>
     <template for:each={rows} for:item="row" for:index="index">
         <div key={row.key} class="slds-grid slds-gutters_x-small slds-wrap slds-grid_vertical-align-end slds-m-bottom_x-small">
+            <!-- A contact's name and email come from the Contact and cannot be changed here. -->
             <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
                 <lightning-input label={labels.name} value={row.name} data-index={index} data-field="name"
-                    onchange={handleChange} required></lightning-input>
+                    onchange={handleChange} read-only={row.fromContact} required></lightning-input>
             </div>
             <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12">
                 <lightning-input type="email" label={labels.email} value={row.email} data-index={index} data-field="email"
-                    onchange={handleChange} required></lightning-input>
+                    onchange={handleChange} read-only={row.fromContact} required></lightning-input>
             </div>
             <div class="slds-col slds-size_1-of-2 slds-medium-size_2-of-12">
                 <lightning-combobox label={labels.role} placeholder={labels.rolePlaceholder} options={roleOptions} value={row.role}
@@ -21,11 +38,11 @@
             </div>
             <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-12 slds-grid slds-grid_align-end">
                 <lightning-button-icon icon-name="utility:delete" alternative-text={labels.remove} title={labels.remove}
-                    data-index={index} onclick={removeRow} disabled={isSingleRow}></lightning-button-icon>
+                    data-index={index} onclick={removeRow}></lightning-button-icon>
             </div>
         </div>
     </template>
-    <lightning-button label={labels.add} icon-name="utility:add" onclick={addRow}></lightning-button>
+    <lightning-button label={labels.addOther} icon-name="utility:add" onclick={addRow}></lightning-button>
     <template lwc:if={tagNotice}>
         <p class="slds-text-color_weak slds-m-top_small">{tagNotice}</p>
     </template>

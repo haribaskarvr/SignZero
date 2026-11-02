@@ -1,6 +1,7 @@
 import { LightningElement, api, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { loadScript } from 'lightning/platformResourceLoader';
+import Toast from 'lightning/toast';
 import PDF_HOST_RESOURCE from '@salesforce/resourceUrl/signZeroPdfHost';
 import initializeSession from '@salesforce/apex/SignZeroGatewayController.initializeSession';
 import recordConsent from '@salesforce/apex/SignZeroGatewayController.recordConsent';
@@ -9,6 +10,8 @@ import declineToSign from '@salesforce/apex/SignZeroGatewayController.declineToS
 import { extractInk } from './signatureInk';
 import { SIG_WIDTH, SIG_HEIGHT, findAnchorTags } from 'c/signZeroAnchorTags';
 import reassign from '@salesforce/apex/SignZeroGatewayController.reassign';
+import sendPasscode from '@salesforce/apex/SignZeroGatewayController.sendPasscode';
+import verifyPasscode from '@salesforce/apex/SignZeroGatewayController.verifyPasscode';
 
 // Text is in Custom Labels (category SignZero) so admins can reword and translate it.
 import loadingSession from '@salesforce/label/c.SZ_Loading_Session';
@@ -84,6 +87,18 @@ import placeHint from '@salesforce/label/c.SZ_Place_Hint';
 import placeCancel from '@salesforce/label/c.SZ_Place_Cancel';
 import placeAnother from '@salesforce/label/c.SZ_Place_Another';
 import placeRemove from '@salesforce/label/c.SZ_Place_Remove';
+import passcodeTitle from '@salesforce/label/c.SZ_Passcode_Title';
+import passcodeIntro from '@salesforce/label/c.SZ_Passcode_Intro';
+import passcodeSend from '@salesforce/label/c.SZ_Passcode_Send';
+import passcodeSent from '@salesforce/label/c.SZ_Passcode_Sent';
+import passcodeLabel from '@salesforce/label/c.SZ_Passcode_Label';
+import passcodeVerify from '@salesforce/label/c.SZ_Passcode_Verify';
+import passcodeResend from '@salesforce/label/c.SZ_Passcode_Resend';
+import passcodeResendWait from '@salesforce/label/c.SZ_Passcode_Resend_Wait';
+import passcodeWrong from '@salesforce/label/c.SZ_Err_Passcode_Wrong';
+import passcodeExpired from '@salesforce/label/c.SZ_Err_Passcode_Expired';
+import errPasscodeRequired from '@salesforce/label/c.SZ_Err_Passcode_Required';
+import moreActions from '@salesforce/label/c.SZ_More_Actions';
 
 const LABELS = {
     loadingSession,
@@ -158,7 +173,19 @@ const LABELS = {
     placeHint,
     placeCancel,
     placeAnother,
-    placeRemove
+    placeRemove,
+    passcodeTitle,
+    passcodeIntro,
+    passcodeSend,
+    passcodeSent,
+    passcodeLabel,
+    passcodeVerify,
+    passcodeResend,
+    passcodeResendWait,
+    passcodeWrong,
+    passcodeExpired,
+    errPasscodeRequired,
+    moreActions
 };
 
 /** Fills {0}, {1}, ... placeholders in a label. */
@@ -236,6 +263,32 @@ function timing(step, startedAt, endedAt = performance.now()) {
     }
 }
 
+/*
+ * The key from a correct passcode is kept for this browser tab only, so a reload does not ask for another code.
+ * Storage can be blocked (private windows, site settings); the signer then verifies again after a reload.
+ */
+const PASSCODE_STORAGE_PREFIX = 'signZeroPasscode:';
+
+function readPasscodeSession(rawToken) {
+    try {
+        return window.sessionStorage.getItem(PASSCODE_STORAGE_PREFIX + rawToken);
+    } catch (e) {
+        return null;
+    }
+}
+
+function storePasscodeSession(rawToken, passcodeSession) {
+    try {
+        if (passcodeSession) {
+            window.sessionStorage.setItem(PASSCODE_STORAGE_PREFIX + rawToken, passcodeSession);
+        } else {
+            window.sessionStorage.removeItem(PASSCODE_STORAGE_PREFIX + rawToken);
+        }
+    } catch (e) {
+        // not kept; see above
+    }
+}
+
 function reduceError(error) {
     if (error && error.body && error.body.message) {
         return error.body.message;
@@ -294,12 +347,16 @@ function trimToInk(canvas) {
 export default class SignZeroPortal extends LightningElement {
     labels = LABELS;
     rawToken;
-    state = 'loading'; // loading | error | signing | submitting | done | declined
+    passcodeSession; // key from a correct one-time passcode, sent with every call; null when none is needed
+    // The passcode screen: where the code goes, whether one was sent, what the signer typed.
+    passcode = { maskedEmail: '', sent: false, digits: 6, validMinutes: 10, code: '', error: null };
+    afterPasscode;
+    resendIn = 0; // seconds until another code can be asked for
+    resendTimer;
+    state = 'loading'; // loading | error | passcode | signing | submitting | done | declined
     loadingMessage = LABELS.loadingSession;
     isFinalSigner = false;
     errorMessage;
-    toastMessage;
-    toastIsError = true;
     isWorking = false;
 
     documentName = 'Agreement';
@@ -407,6 +464,24 @@ export default class SignZeroPortal extends LightningElement {
     }
     get isDone() {
         return this.state === 'done';
+    }
+    get isPasscode() {
+        return this.state === 'passcode';
+    }
+    get passcodeIntroMessage() {
+        return format(LABELS.passcodeIntro, this.passcode.maskedEmail);
+    }
+    get passcodeSentMessage() {
+        return format(LABELS.passcodeSent, this.passcode.digits, this.passcode.maskedEmail, this.passcode.validMinutes);
+    }
+    get resendLabel() {
+        return this.resendIn > 0 ? format(LABELS.passcodeResendWait, this.resendIn) : LABELS.passcodeResend;
+    }
+    get resendDisabled() {
+        return this.isWorking || this.resendIn > 0;
+    }
+    get verifyDisabled() {
+        return this.isWorking || this.passcode.code.length !== this.passcode.digits;
     }
     get isDeclined() {
         return this.state === 'declined';
@@ -536,7 +611,17 @@ export default class SignZeroPortal extends LightningElement {
             const loadStarted = performance.now();
             // The host page and the session load in parallel.
             this.startPdfEngine();
-            let session = await initializeSession({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+            this.passcodeSession = readPasscodeSession(this.rawToken);
+            let session = await this.loadSession();
+            if (session.passcodeRequired) {
+                // The document arrives only after the signer enters the code emailed to them.
+                this.sessionBranding = session.branding || {};
+                performanceLogs = session.performanceLogs === true;
+                await new Promise((resolve) => this.askPasscode(session, resolve));
+                this.loadingMessage = LABELS.loadingSession;
+                this.state = 'loading';
+                session = await this.loadSession();
+            }
             this.applySession(session);
             timing('session loaded', loadStarted);
             this.confirmEngineVersion(session.pdfHostVersion);
@@ -548,7 +633,7 @@ export default class SignZeroPortal extends LightningElement {
                 this.consentFirst = false;
                 this.loadingMessage = LABELS.loadingDocument;
                 this.state = 'loading';
-                session = await initializeSession({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+                session = await this.loadSession();
                 this.applySession(session);
             }
             this.loadingMessage = LABELS.loadingDocument;
@@ -572,6 +657,14 @@ export default class SignZeroPortal extends LightningElement {
         } catch (error) {
             this.fail(reduceError(error));
         }
+    }
+
+    loadSession() {
+        return initializeSession({
+            rawToken: this.rawToken,
+            userAgent: navigator.userAgent,
+            passcodeSession: this.passcodeSession
+        });
     }
 
     applySession(res) {
@@ -604,12 +697,108 @@ export default class SignZeroPortal extends LightningElement {
             this.fail(message);
             return;
         }
-        this.toastIsError = isError;
-        this.toastMessage = message;
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        setTimeout(() => {
-            this.toastMessage = null;
-        }, 5000);
+        // The passcode verification ran out: a reload asks for a new code.
+        if (message === LABELS.errPasscodeRequired) {
+            storePasscodeSession(this.rawToken, null);
+            this.fail(message);
+            return;
+        }
+        // The standard toast fits phone screens and is announced by screen readers.
+        Toast.show({ label: message, variant: isError ? 'error' : 'info', mode: 'dismissible' }, this);
+    }
+
+    // ---------- one-time passcode ----------
+
+    /** Shows the passcode screen, then carries on once the signer enters a correct code. */
+    askPasscode(challenge, then) {
+        this.passcode = {
+            maskedEmail: challenge.maskedEmail,
+            sent: challenge.passcodeSent === true,
+            digits: challenge.passcodeDigits || 6,
+            validMinutes: challenge.passcodeValidMinutes || 10,
+            code: '',
+            error: null
+        };
+        this.recipientName = challenge.recipientName;
+        this.afterPasscode = then;
+        this.startResendCountdown(challenge.resendSeconds || 0);
+        this.state = 'passcode';
+    }
+
+    startResendCountdown(seconds) {
+        clearInterval(this.resendTimer);
+        this.resendIn = seconds;
+        if (seconds > 0) {
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            this.resendTimer = setInterval(() => {
+                this.resendIn -= 1;
+                if (this.resendIn <= 0) {
+                    clearInterval(this.resendTimer);
+                }
+            }, 1000);
+        }
+    }
+
+    async handleSendPasscode() {
+        this.isWorking = true;
+        try {
+            const res = await sendPasscode({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+            this.passcode = { ...this.passcode, maskedEmail: res.maskedEmail, sent: true, code: '', error: null };
+            this.startResendCountdown(res.resendSeconds);
+        } catch (error) {
+            this.passcode = { ...this.passcode, error: reduceError(error) };
+        } finally {
+            this.isWorking = false;
+        }
+    }
+
+    handlePasscodeInput(event) {
+        const code = (event.target.value || '').replace(/\D/g, '').slice(0, this.passcode.digits);
+        this.passcode = { ...this.passcode, code, error: null };
+    }
+
+    handlePasscodeKeyup(event) {
+        if (event.key === 'Enter' && !this.verifyDisabled) {
+            this.handleVerifyPasscode();
+        }
+    }
+
+    async handleVerifyPasscode() {
+        this.isWorking = true;
+        try {
+            const res = await verifyPasscode({
+                rawToken: this.rawToken,
+                code: this.passcode.code,
+                userAgent: navigator.userAgent
+            });
+            if (res.verified) {
+                this.passcodeSession = res.passcodeSession;
+                storePasscodeSession(this.rawToken, res.passcodeSession);
+                clearInterval(this.resendTimer);
+                const then = this.afterPasscode;
+                this.afterPasscode = null;
+                then();
+            } else {
+                const triesLeft = res.triesLeft || 0;
+                // No tries left: back to asking for a new code.
+                this.passcode = {
+                    ...this.passcode,
+                    sent: triesLeft > 0,
+                    code: '',
+                    error: triesLeft > 0 ? format(LABELS.passcodeWrong, triesLeft) : LABELS.passcodeExpired
+                };
+            }
+        } catch (error) {
+            const message = reduceError(error);
+            this.passcode = {
+                ...this.passcode,
+                sent: this.passcode.sent && message !== LABELS.passcodeExpired,
+                code: '',
+                error: message
+            };
+        } finally {
+            this.isWorking = false;
+        }
     }
 
     // ---------- consent ----------
@@ -628,7 +817,11 @@ export default class SignZeroPortal extends LightningElement {
     async handleAcceptConsent() {
         this.isWorking = true;
         try {
-            await recordConsent({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+            await recordConsent({
+                rawToken: this.rawToken,
+                userAgent: navigator.userAgent,
+                passcodeSession: this.passcodeSession
+            });
             this.consentAccepted = true;
             const then = this.afterConsent;
             this.closeConsentModal();
@@ -944,6 +1137,7 @@ export default class SignZeroPortal extends LightningElement {
     }
 
     disconnectedCallback() {
+        clearInterval(this.resendTimer);
         this.drawGeneration += 1;
         this.releasePageImages();
         window.removeEventListener('resize', this.boundFitToWindow);
@@ -1548,12 +1742,6 @@ export default class SignZeroPortal extends LightningElement {
         return canvas.toDataURL('image/png');
     }
 
-    get toastClass() {
-        return `slds-notify slds-notify_toast ${this.toastIsError ? 'slds-theme_error' : 'slds-theme_info'}`;
-    }
-    get toastIcon() {
-        return this.toastIsError ? 'utility:error' : 'utility:info';
-    }
 
     /** Uploaded signature: only the ink is kept. */
     handleUpload(event) {
@@ -1694,7 +1882,8 @@ export default class SignZeroPortal extends LightningElement {
                               y: Math.round(pdfY * 100) / 100
                           }))
                       )
-                    : null
+                    : null,
+                passcodeSession: this.passcodeSession
             });
             timing('submitted to Salesforce', submitStarted);
             this.isFinalSigner = result && result.isFinalSigner === true;
@@ -1743,7 +1932,8 @@ export default class SignZeroPortal extends LightningElement {
                 name: this.reassignTo.name,
                 email: this.reassignTo.email,
                 reason: this.reassignTo.reason,
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                passcodeSession: this.passcodeSession
             });
             this.showReassignModal = false;
             this.state = 'reassigned';
@@ -1751,6 +1941,18 @@ export default class SignZeroPortal extends LightningElement {
             this.showToast(reduceError(error));
         } finally {
             this.isWorking = false;
+        }
+    }
+
+    /** The phone menu in the document bar runs the same actions as the buttons. */
+    handleDocAction(event) {
+        const action = event.detail.value;
+        if (action === 'changeSignature') {
+            this.handleChangeSignature();
+        } else if (action === 'reassign') {
+            this.openReassignModal();
+        } else if (action === 'decline') {
+            this.openDeclineModal();
         }
     }
 
@@ -1769,7 +1971,12 @@ export default class SignZeroPortal extends LightningElement {
     async confirmDecline() {
         this.isWorking = true;
         try {
-            await declineToSign({ rawToken: this.rawToken, reason: this.declineReason, userAgent: navigator.userAgent });
+            await declineToSign({
+                rawToken: this.rawToken,
+                reason: this.declineReason,
+                userAgent: navigator.userAgent,
+                passcodeSession: this.passcodeSession
+            });
             this.showDeclineModal = false;
             this.state = 'declined';
         } catch (error) {
