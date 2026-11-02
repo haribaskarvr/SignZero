@@ -20,6 +20,7 @@
     </head>
     <body>
         <div class="header">
+            <apex:image url="{!logoUrl}" rendered="{!NOT(ISBLANK(logoUrl))}" style="max-height:40px;max-width:200px"/>
             <div class="title">Certificate of Completion</div>
             <p class="sub">Envelope {!sigRequest.Name} &middot; Generated {!generatedAt}</p>
         </div>

@@ -6,9 +6,10 @@ import initializeSession from '@salesforce/apex/SignZeroGatewayController.initia
 import recordConsent from '@salesforce/apex/SignZeroGatewayController.recordConsent';
 import submitExecutedDocument from '@salesforce/apex/SignZeroGatewayController.submitExecutedDocument';
 import declineToSign from '@salesforce/apex/SignZeroGatewayController.declineToSign';
+import { extractInk } from './signatureInk';
 import reassign from '@salesforce/apex/SignZeroGatewayController.reassign';
 
-// Signer-facing text lives in Custom Labels (category SignZero) so admins can reword and translate it.
+// Text is in Custom Labels (category SignZero) so admins can reword and translate it.
 import loadingSession from '@salesforce/label/c.SZ_Loading_Session';
 import loadingDocument from '@salesforce/label/c.SZ_Loading_Document';
 import errorTitle from '@salesforce/label/c.SZ_Error_Title';
@@ -24,6 +25,7 @@ import consentGreeting from '@salesforce/label/c.SZ_Consent_Greeting';
 import consentBody from '@salesforce/label/c.SZ_Consent_Body';
 import consentPaperOption from '@salesforce/label/c.SZ_Consent_Paper_Option';
 import consentAccept from '@salesforce/label/c.SZ_Consent_Accept';
+import consentNotNow from '@salesforce/label/c.SZ_Consent_Not_Now';
 import decline from '@salesforce/label/c.SZ_Decline';
 import declineTitle from '@salesforce/label/c.SZ_Decline_Title';
 import declineReason from '@salesforce/label/c.SZ_Decline_Reason';
@@ -52,6 +54,8 @@ import drawHelp from '@salesforce/label/c.SZ_Draw_Help';
 import uploadLabel from '@salesforce/label/c.SZ_Upload_Label';
 import uploadHelp from '@salesforce/label/c.SZ_Upload_Help';
 import uploadInvalid from '@salesforce/label/c.SZ_Upload_Invalid';
+import uploadNoInk from '@salesforce/label/c.SZ_Upload_No_Ink';
+import uploadProcessing from '@salesforce/label/c.SZ_Upload_Processing';
 import pageOf from '@salesforce/label/c.SZ_Page_Of';
 import prevPage from '@salesforce/label/c.SZ_Prev_Page';
 import nextPage from '@salesforce/label/c.SZ_Next_Page';
@@ -90,6 +94,7 @@ const LABELS = {
     consentBody,
     consentPaperOption,
     consentAccept,
+    consentNotNow,
     decline,
     declineTitle,
     declineReason,
@@ -118,6 +123,8 @@ const LABELS = {
     uploadLabel,
     uploadHelp,
     uploadInvalid,
+    uploadNoInk,
+    uploadProcessing,
     pageOf,
     prevPage,
     nextPage,
@@ -147,10 +154,8 @@ function format(label, ...args) {
 }
 
 /*
- * PDF work (opening, drawing pages, stamping) runs in the SignZero PDF host: index.html of the signZeroPdfHost
- * static resource, loaded in a hidden iframe on the same site, outside Lightning Web Security, where PDF.js has its
- * Web Worker and canvas runs at full speed. If the host does not answer in time, the same engine files are loaded
- * into this component instead (slower, same result).
+ * PDF work runs in the signZeroPdfHost page, loaded in a hidden iframe outside Lightning Web Security so PDF.js gets
+ * its Web Worker. If the host does not answer in time, the engine runs in this component instead (slower).
  */
 const PDF_HOST_NAME = 'signZeroPdfHost';
 const ENGINE_READY_TIMEOUT_MS = 8000;
@@ -160,26 +165,36 @@ const ENGINE_REQUEST_TIMEOUT_MS = { open: 30000, renderPage: 10000, stamp: 20000
 const INK = '#0b1f4d';
 const SIGNATURE_IMAGE_WIDTH = 640;
 const SIGNATURE_IMAGE_HEIGHT = 200;
-const MAX_UPLOAD_BYTES = 1024 * 1024;
+// Phone photos are large; the image never leaves the browser.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+// Uploaded images are processed at most this wide.
+const UPLOAD_WORK_SIZE = 1200;
+// Adopted signatures are cropped to their ink at most this tall (about 7 px per point in a 30 pt box).
+const SIGNATURE_MAX_HEIGHT = 200;
+// Padding around the ink so anti-aliased edges survive.
+const INK_EDGE = 2;
 
-// Handwriting-style fonts found on most devices, with generic fallbacks; nothing is downloaded.
+// Handwriting fonts found on most devices; nothing is downloaded.
 const TYPED_STYLES = [
     { family: "'Segoe Script', 'Brush Script MT', 'Snell Roundhand', cursive", italic: false },
     { family: "'Lucida Handwriting', 'Bradley Hand', 'Segoe Print', cursive", italic: false },
     { family: "Georgia, 'Times New Roman', serif", italic: true }
 ];
 
-// Signature size in PDF points. The "Signed electronically by" caption goes just under the signature.
+// Signature size in PDF points; the "Signed electronically by" caption goes just under it.
 const SIG_WIDTH = 150;
 const SIG_HEIGHT = 30;
+// A signature fills its area's width and may rise above it up to this many times its height.
+// Keep in step with signZeroPdfHost/engine.js.
+const SIG_OVERFLOW = 2;
 const MIN_SIG_HEIGHT = 16;
 const MAX_SIG_HEIGHT = 80;
 
 /**
- * Where a signature goes relative to its tag. Template authors choose with options after the role:
- *   {{sig:Customer}}          the signature sits on the tag's line (the usual "sign here ____" case)
- *   {{sig:Customer|below}}    it hangs down from the tag, into empty space such as a blank table cell
- *   {{sig:Customer|h=40}}     signature height in points (16-80), combinable: {{sig:Customer|below|h=40}}
+ * Where a signature goes relative to its tag:
+ *   {{sig:Customer}}          on the tag's line
+ *   {{sig:Customer|below}}    hanging below the tag, e.g. into an empty table cell
+ *   {{sig:Customer|h=40}}     height in points (16-80); options combine: {{sig:Customer|below|h=40}}
  */
 function placementFor(tagText, tagX, tagY, fontHeight) {
     const options = (tagText.match(/\|([^}]*)\}\}$/) || [null, ''])[1].toLowerCase().split('|').map((o) => o.trim());
@@ -220,10 +235,10 @@ function bytesToBase64(bytes) {
     return btoa(binary);
 }
 
-// Switched on by the Performance Logs checkbox on the SignZero Diagnostics custom setting.
+// Set by Performance Logs on the SignZero Diagnostics custom setting.
 let performanceLogs = false;
 
-/** Step timings in the browser console, for diagnosing slow signing sessions. */
+/** Step timings in the browser console. */
 function timing(step, startedAt, endedAt = performance.now()) {
     if (performanceLogs) {
         // eslint-disable-next-line no-console
@@ -238,6 +253,54 @@ function reduceError(error) {
     return (error && error.message) || LABELS.genericError;
 }
 
+/** Sizes a signature in its box as the stamp does in the PDF: full width, rising above the box when taller. */
+function sizeSignatureImage(img, box) {
+    const scale = Math.min(
+        box.offsetWidth / img.naturalWidth,
+        (SIG_OVERFLOW * box.offsetHeight) / img.naturalHeight
+    );
+    img.style.maxWidth = 'none';
+    img.style.maxHeight = 'none';
+    img.style.flexShrink = '0';
+    img.style.width = `${img.naturalWidth * scale}px`;
+    img.style.height = `${img.naturalHeight * scale}px`;
+}
+
+/** Crops a signature canvas to its ink so the stamp can scale the strokes to the box; unchanged when blank. */
+function trimToInk(canvas) {
+    const { width, height } = canvas;
+    const alpha = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+    let left = width;
+    let top = height;
+    let right = -1;
+    let bottom = -1;
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (alpha[(y * width + x) * 4 + 3] > 8) {
+                left = Math.min(left, x);
+                right = Math.max(right, x);
+                top = Math.min(top, y);
+                bottom = Math.max(bottom, y);
+            }
+        }
+    }
+    if (right < 0) {
+        return canvas;
+    }
+    left = Math.max(0, left - INK_EDGE);
+    top = Math.max(0, top - INK_EDGE);
+    right = Math.min(width - 1, right + INK_EDGE);
+    bottom = Math.min(height - 1, bottom + INK_EDGE);
+    const cropWidth = right - left + 1;
+    const cropHeight = bottom - top + 1;
+    const fit = Math.min(1, SIGNATURE_MAX_HEIGHT / cropHeight);
+    const trimmed = document.createElement('canvas');
+    trimmed.width = Math.max(1, Math.round(cropWidth * fit));
+    trimmed.height = Math.max(1, Math.round(cropHeight * fit));
+    trimmed.getContext('2d').drawImage(canvas, left, top, cropWidth, cropHeight, 0, 0, trimmed.width, trimmed.height);
+    return trimmed;
+}
+
 export default class SignZeroPortal extends LightningElement {
     labels = LABELS;
     rawToken;
@@ -246,6 +309,7 @@ export default class SignZeroPortal extends LightningElement {
     isFinalSigner = false;
     errorMessage;
     toastMessage;
+    toastIsError = true;
     isWorking = false;
 
     documentName = 'Agreement';
@@ -253,16 +317,18 @@ export default class SignZeroPortal extends LightningElement {
     recipientName = '';
     signerRole = 'Customer';
     consentAccepted = false;
+    // The disclosure opens when the signer first tries to sign, or on load with Require Consent Before Viewing.
+    consentRequested = false;
+    consentFirst = false;
+    afterConsent; // what to carry on with once they agree
     showSignatureModal = false;
     showDeclineModal = false;
     declineReason = '';
 
-    // Experience Builder properties. When set they win over SignZero_Setting__mdt, which wins over the site theme.
+    // Experience Builder overrides; they win over SignZero Settings, which win over the site theme.
     @api primaryColor;
     @api primaryHoverColor;
     @api accentColor;
-    @api logoUrl;
-    @api companyName;
 
     sessionBranding = {};
 
@@ -282,23 +348,24 @@ export default class SignZeroPortal extends LightningElement {
     currentPage = 1;
     pageCount = 0;
     pdfEngineUrl;
-    openedDoc; // from the engine: { docId, pages: [{ width, height, transform, view }], tagItems }
-    pageImageUrls = []; // object URLs of the drawn pages, released on redraw
-    drawGeneration = 0; // bumped by every redraw, so an older drawing pass stops
-    engineInComponent = false; // the host page failed, so the engine runs inside this component from now on
-    readOnly = false; // reopened after signing: view only
+    openedDoc; // { docId, pages: [{ width, height, transform, view }], tagItems }
+    pageImageUrls = []; // released on redraw
+    drawGeneration = 0; // bumped per redraw so an older pass stops
+    engineInComponent = false; // the host page failed
+    readOnly = false; // reopened after signing
     envelopeStatus;
     signedAt;
     isLastSigner = false;
     allowReassign = false;
     showReassignModal = false;
     reassignTo = { name: '', email: '', reason: '' };
-    tagRects = []; // every anchor tag found, any role: { pageIndex, rect }
+    tagRects = []; // every anchor tag, any role: { pageIndex, rect }
     signatureMode = 'type'; // type | draw | upload
     typedName = '';
     typedStyle = 0;
     uploadedSignature; // PNG data URL
     uploadError;
+    isProcessingUpload = false;
     adoptedMethod; // Drawn | Typed | Uploaded
     started = false;
 
@@ -314,7 +381,7 @@ export default class SignZeroPortal extends LightningElement {
     }
 
     connectedCallback() {
-        // Fallback for containers that never provide a page reference.
+        // For containers that never provide a page reference.
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
             if (!this.started) {
@@ -380,24 +447,32 @@ export default class SignZeroPortal extends LightningElement {
         return this.state === 'submitting';
     }
     get showConsentModal() {
-        return this.isSigning && !this.consentAccepted && !this.showDeclineModal && !this.showReassignModal;
+        return (
+            this.isSigning &&
+            this.consentRequested &&
+            !this.consentAccepted &&
+            !this.showDeclineModal &&
+            !this.showReassignModal
+        );
     }
     get showGuide() {
-        return this.isSigning && this.consentAccepted;
+        return this.isSigning && !this.consentFirst;
+    }
+    // With consent first there is nothing to read until it is accepted, so it cannot be put off.
+    get canPostponeConsent() {
+        return !this.consentFirst;
     }
 
     get branding() {
         const org = this.sessionBranding;
         return {
-            logoUrl: this.logoUrl || org.logoUrl,
-            companyName: this.companyName || org.companyName,
             primaryColor: this.primaryColor || org.primaryColor,
             primaryHoverColor: this.primaryHoverColor || org.primaryHoverColor,
             accentColor: this.accentColor || org.accentColor
         };
     }
 
-    // Only emit overrides that are configured, so the site theme shows through for the rest.
+    // Only configured overrides, so the site theme shows through for the rest.
     get dynamicBrandStyles() {
         const b = this.branding;
         return [
@@ -414,10 +489,7 @@ export default class SignZeroPortal extends LightningElement {
         if (this.isViewing) {
             return 'document-container';
         }
-        if (!this.isSigning) {
-            return 'document-container hidden';
-        }
-        return this.consentAccepted ? 'document-container' : 'document-container document-blurred';
+        return this.isSigning ? 'document-container' : 'document-container hidden';
     }
 
     get remainingSpots() {
@@ -442,7 +514,7 @@ export default class SignZeroPortal extends LightningElement {
         return format(LABELS.consentGreeting, this.recipientName);
     }
 
-    // The last signer completes the envelope, so they get a "complete" message rather than "waiting on others".
+    // The last signer completes the envelope rather than waiting on others.
     get doneTitle() {
         return this.isFinalSigner ? LABELS.doneFinalTitle : format(LABELS.doneTitle, this.recipientName);
     }
@@ -456,16 +528,27 @@ export default class SignZeroPortal extends LightningElement {
     async start() {
         try {
             const loadStarted = performance.now();
-            // The host page loads while Salesforce prepares the session; neither waits for the other.
+            // The host page and the session load in parallel.
             this.startPdfEngine();
-            const session = await initializeSession({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+            let session = await initializeSession({ rawToken: this.rawToken, userAgent: navigator.userAgent });
             this.applySession(session);
             timing('session loaded', loadStarted);
             this.confirmEngineVersion(session.pdfHostVersion);
+            if (session.consentBeforeViewing) {
+                // The document arrives only after the signer accepts the disclosure.
+                this.consentFirst = true;
+                this.state = 'signing';
+                await new Promise((resolve) => this.askConsent(resolve));
+                this.consentFirst = false;
+                this.loadingMessage = LABELS.loadingDocument;
+                this.state = 'loading';
+                session = await initializeSession({ rawToken: this.rawToken, userAgent: navigator.userAgent });
+                this.applySession(session);
+            }
             this.loadingMessage = LABELS.loadingDocument;
             this.state = this.readOnly ? 'viewing' : 'signing';
-            // Let the template show the document area before measuring and drawing into it. Browsers hold back
-            // animation frames for pages they treat as in the background (seen at 8-22 s), so don't wait past 100 ms.
+            // Let the document area render before drawing. Background pages throttle animation frames (seen at
+            // 8-22 s), so wait at most 100 ms.
             await new Promise((resolve) => {
                 requestAnimationFrame(resolve);
                 // eslint-disable-next-line @lwc/lwc/no-async-operation
@@ -477,7 +560,7 @@ export default class SignZeroPortal extends LightningElement {
             timing('viewer laid out', loadStarted);
             this.isRendering = true;
             await this.renderAllPages();
-            // Pages and signing spots are in place; page images keep arriving in the background.
+            // Pages and signing spots are ready; images keep arriving in the background.
             timing('document ready', loadStarted);
             this.isRendering = false;
         } catch (error) {
@@ -497,7 +580,7 @@ export default class SignZeroPortal extends LightningElement {
         this.isLastSigner = res.isLastSigner === true;
         this.allowReassign = res.allowReassign === true;
         performanceLogs = res.performanceLogs === true;
-        this.pdfBytes = base64ToBytes(res.pdfBase64);
+        this.pdfBytes = res.pdfBase64 ? base64ToBytes(res.pdfBase64) : null;
         this.sessionBranding = res.branding || {};
     }
 
@@ -506,12 +589,14 @@ export default class SignZeroPortal extends LightningElement {
         this.state = 'error';
     }
 
-    showToast(message) {
-        // The sender recalled the envelope while it was open: leave the document for the recalled notice.
+    /** Shows a message at the top of the page for a few seconds; isError defaults to true. */
+    showToast(message, isError = true) {
+        // Recalled mid-session: keep the recalled notice instead.
         if (message === LABELS.errRecalled) {
             this.fail(message);
             return;
         }
+        this.toastIsError = isError;
         this.toastMessage = message;
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
@@ -521,11 +606,27 @@ export default class SignZeroPortal extends LightningElement {
 
     // ---------- consent ----------
 
+    /** Asks for consent once, then carries on with what the signer started. */
+    askConsent(then) {
+        this.afterConsent = then;
+        this.consentRequested = true;
+    }
+
+    closeConsentModal() {
+        this.consentRequested = false;
+        this.afterConsent = null;
+    }
+
     async handleAcceptConsent() {
         this.isWorking = true;
         try {
             await recordConsent({ rawToken: this.rawToken, userAgent: navigator.userAgent });
             this.consentAccepted = true;
+            const then = this.afterConsent;
+            this.closeConsentModal();
+            if (then) {
+                then();
+            }
         } catch (error) {
             this.showToast(reduceError(error));
         } finally {
@@ -535,10 +636,7 @@ export default class SignZeroPortal extends LightningElement {
 
     // ---------- rendering & tag detection ----------
 
-    /**
-     * Lays out every page at its final size with its signing spots, then draws the page images in the background,
-     * so the signer can read page 1 and start signing before the rest are drawn.
-     */
+    /** Lays out every page and signing spot at final size, then draws page images in the background. */
     async renderAllPages() {
         if (!this.openedDoc) {
             const openStarted = performance.now();
@@ -556,7 +654,8 @@ export default class SignZeroPortal extends LightningElement {
         const scales = pages.map((page) => this.scaleFor(page, area));
         pages.forEach((page, pageIndex) => {
             const wrapper = document.createElement('div');
-            wrapper.className = 'page-container';
+            // Spins until the page image is drawn into it.
+            wrapper.className = 'page-container page-loading';
             wrapper.dataset.scale = String(scales[pageIndex]);
             wrapper.style.width = `${page.width * scales[pageIndex]}px`;
             wrapper.style.height = `${page.height * scales[pageIndex]}px`;
@@ -565,7 +664,7 @@ export default class SignZeroPortal extends LightningElement {
         this.pageCount = pages.length;
         this.renderedScale = scales[0];
 
-        // Redrawing (after a resize or zoom) keeps the signatures already applied.
+        // Keeps signatures already applied.
         const wrappers = container.children;
         this.signatureLocations.forEach((spot) => {
             this.addHotspot(spot, wrappers[spot.pageIndex], pages[spot.pageIndex], scales[spot.pageIndex]);
@@ -577,7 +676,7 @@ export default class SignZeroPortal extends LightningElement {
         this.drawPages(scales);
     }
 
-    /** Every anchor tag, whatever its role, is remembered (stamping covers them); this signer's become signing spots. */
+    /** Remembers every anchor tag (stamping covers them); this signer's become signing spots. */
     findSignatureSpots() {
         const { pages, tagItems } = this.openedDoc;
         const anyTag = /\{\{\s*sig\s*:[^}]*\}\}/gi;
@@ -607,7 +706,7 @@ export default class SignZeroPortal extends LightningElement {
             }
         });
         if (locations.length === 0 && !this.readOnly) {
-            // No {{sig:role}} tag for this signer: offer one spot at the bottom right of the last page.
+            // No tag for this signer: one spot at the bottom right of the last page.
             const lastIndex = pages.length - 1;
             const [, y0, x1] = pages[lastIndex].view;
             locations.push({
@@ -619,13 +718,13 @@ export default class SignZeroPortal extends LightningElement {
                 tagRect: null,
                 signed: false
             });
-            this.showToast(LABELS.noTagsNotice);
+            this.showToast(LABELS.noTagsNotice, false);
         }
         this.tagRects = tagRects;
         this.signatureLocations = locations;
     }
 
-    /** Draws the page images one by one, starting with the page in view. A newer redraw stops this pass. */
+    /** Draws page images one by one from the page in view; a newer redraw stops this pass. */
     async drawPages(scales) {
         this.drawGeneration += 1;
         const generation = this.drawGeneration;
@@ -637,7 +736,7 @@ export default class SignZeroPortal extends LightningElement {
         const drawStarted = performance.now();
         try {
             for (const pageIndex of order) {
-                // Draw at device resolution so text stays sharp on high-density screens.
+                // Device resolution keeps text sharp on high-density screens.
                 // eslint-disable-next-line no-await-in-loop
                 const { image } = await this.runPdfEngine('renderPage', {
                     docId: this.openedDoc.docId,
@@ -655,6 +754,7 @@ export default class SignZeroPortal extends LightningElement {
                 img.src = url;
                 const wrapper = this.template.querySelectorAll('.page-container')[pageIndex];
                 wrapper.insertBefore(img, wrapper.firstChild);
+                wrapper.classList.remove('page-loading');
                 if (pageIndex === first) {
                     timing('first page shown', drawStarted);
                 }
@@ -678,7 +778,7 @@ export default class SignZeroPortal extends LightningElement {
 
     // ---------- viewer: fit page / fit width / zoom, and page navigation ----------
 
-    /** Space the pages can use inside the scrolling area, in CSS pixels. */
+    /** Usable space inside the scrolling area, in CSS pixels. */
     viewerArea() {
         const viewportEl = this.template.querySelector('.pdf-scroll-viewport');
         const width = (viewportEl && viewportEl.clientWidth) || window.innerWidth;
@@ -686,7 +786,7 @@ export default class SignZeroPortal extends LightningElement {
         return { width: Math.max(240, width - VIEWER_PADDING * 2), height: Math.max(240, height - VIEWER_PADDING * 2) };
     }
 
-    /** PDF points to CSS pixels for one page, by zoom mode. Each page is fitted on its own (landscape pages too). */
+    /** PDF points to CSS pixels for one page, by zoom mode; each page is fitted on its own. */
     scaleFor(base, area) {
         if (this.zoomMode === 'custom') {
             return this.zoomScale;
@@ -707,11 +807,17 @@ export default class SignZeroPortal extends LightningElement {
     get isLastPage() {
         return this.currentPage >= this.pageCount;
     }
-    get fitPageClass() {
-        return this.zoomMode === 'page' ? 'tool-button active' : 'tool-button';
+    get isFitPage() {
+        return this.zoomMode === 'page';
     }
-    get fitWidthClass() {
-        return this.zoomMode === 'width' ? 'tool-button active' : 'tool-button';
+    get isFitWidth() {
+        return this.zoomMode === 'width';
+    }
+    get fitPageVariant() {
+        return this.isFitPage ? 'brand' : 'neutral';
+    }
+    get fitWidthVariant() {
+        return this.isFitWidth ? 'brand' : 'neutral';
     }
 
     handleZoomIn() {
@@ -766,7 +872,7 @@ export default class SignZeroPortal extends LightningElement {
         }
     }
 
-    /** The current page is the last one whose top has scrolled into the upper third of the viewer. */
+    /** The last page whose top has scrolled into the upper third of the viewer. */
     handleViewerScroll() {
         const viewportEl = this.template.querySelector('.pdf-scroll-viewport');
         const limit = viewportEl.getBoundingClientRect().top + viewportEl.clientHeight / 3;
@@ -779,10 +885,7 @@ export default class SignZeroPortal extends LightningElement {
         this.currentPage = current;
     }
 
-    /**
-     * Fit-to modes depend on the viewer's size, which changes: the site's layout can still be settling when
-     * the document first draws, and signers resize windows or rotate phones. Redraw when it really changes.
-     */
+    /** Redraws fit-to modes when the viewer really changes size (layout settling, resizing, rotating). */
     watchWidth() {
         if (this.resizeObserver) {
             return;
@@ -791,7 +894,7 @@ export default class SignZeroPortal extends LightningElement {
         this.resizeObserver = new ResizeObserver(() => this.scheduleWidthCheck());
         this.resizeObserver.observe(viewportEl);
         viewportEl.addEventListener('scroll', () => this.handleViewerScroll(), { passive: true });
-        // The layout may have settled while the first pages were drawing.
+        // The layout may have settled while the first pages drew.
         this.scheduleWidthCheck();
     }
 
@@ -811,10 +914,7 @@ export default class SignZeroPortal extends LightningElement {
         }, 200);
     }
 
-    /**
-     * The site adds space above the component, so a 100vh portal would run below the fold and "fit page"
-     * would cut off the bottom of the page. Size the portal to the window height that is left instead.
-     */
+    /** Fits the portal to the window height left below the site's header, so "fit page" shows the whole page. */
     fitToWindow() {
         const root = this.template.querySelector('.portal-root');
         if (root) {
@@ -835,7 +935,7 @@ export default class SignZeroPortal extends LightningElement {
 
     // ---------- PDF engine ----------
 
-    /** Loads the PDF host page in a hidden iframe on this site, at its plain address. */
+    /** Loads the PDF host page in a hidden iframe. */
     startPdfEngine() {
         this.enginePending = new Map();
         this.engineReady = new Promise((resolve) => {
@@ -846,7 +946,6 @@ export default class SignZeroPortal extends LightningElement {
         this.loadEnginePage(`/${PDF_HOST_NAME}/index.html`);
     }
 
-    /** @param path the host page under the site's resource path, with or without a version */
     loadEnginePage(path) {
         this.engineAttempt = (this.engineAttempt || 0) + 1;
         const attempt = this.engineAttempt;
@@ -863,9 +962,8 @@ export default class SignZeroPortal extends LightningElement {
     }
 
     /**
-     * The plain address can be served from a browser cache filled before the last deploy (the site lets browsers
-     * keep it for weeks). Once both the host's version and the current one from Salesforce are known, a stale host
-     * is reloaded once at the address with the version in it, which is never stale.
+     * The plain host address may come from a cache filled before the last deploy. Once both versions are known, a
+     * stale host is reloaded once at the versioned address.
      */
     confirmEngineVersion(currentVersion) {
         this.currentHostVersion = currentVersion || null;
@@ -879,7 +977,7 @@ export default class SignZeroPortal extends LightningElement {
         // Last-Modified has whole seconds; the stored version has milliseconds.
         const stale = this.currentHostVersion && this.hostVersion < Math.floor(this.currentHostVersion / 1000) * 1000;
         if (stale) {
-            // A late announcement from the stale copy after the reload is ignored; the timeout covers the rest.
+            // Ignore late messages from the stale copy; the timeout covers the rest.
             if (!this.reloadedEngine) {
                 this.reloadedEngine = true;
                 this.loadEnginePage(`/${this.currentHostVersion}/${PDF_HOST_NAME}/index.html`);
@@ -889,10 +987,7 @@ export default class SignZeroPortal extends LightningElement {
         this.resolveEngineReady(true);
     }
 
-    /**
-     * After a stale host was replaced, the current host refreshes the browser's cached copies at the plain address,
-     * so the next visit needs no reload. Runs once the pages are drawn, so it never competes with them.
-     */
+    /** After replacing a stale host, refreshes the cached copy at the plain address once the pages are drawn. */
     refreshHostCache() {
         const site = window.location.pathname.split('/')[1];
         const plainPage = `${window.location.origin}/${site}/sfsites/c/resource/${PDF_HOST_NAME}/index.html`;
@@ -919,7 +1014,7 @@ export default class SignZeroPortal extends LightningElement {
         }
     }
 
-    /** One request to the host page; rejects if it does not answer in time, so a stuck page cannot hang signing. */
+    /** One request to the host page; rejects on timeout so a stuck page cannot hang signing. */
     requestFromEnginePage(op, payload) {
         this.engineRequestId = (this.engineRequestId || 0) + 1;
         const id = this.engineRequestId;
@@ -935,7 +1030,7 @@ export default class SignZeroPortal extends LightningElement {
         });
     }
 
-    /** Runs a PDF engine operation in the host page, or in this component if the page is not available. */
+    /** Runs an engine operation in the host page, or in this component when the page is unavailable. */
     async runPdfEngine(op, payload) {
         let request = payload;
         if (!this.engineInComponent && (await this.engineReady)) {
@@ -946,7 +1041,7 @@ export default class SignZeroPortal extends LightningElement {
                 console.warn(`[SignZero] PDF host page failed (${error.message}); continuing in the component`);
                 this.engineInComponent = true;
                 if (op === 'renderPage') {
-                    // The document was opened in the host page; open it here as well.
+                    // The document was opened in the host page; open it here too.
                     await this.loadEngineInComponent();
                     const reopened = await window.SignZeroPdfEngine.open({ pdfBytes: this.pdfBytes.slice() });
                     this.openedDoc = { ...this.openedDoc, docId: reopened.docId };
@@ -965,14 +1060,13 @@ export default class SignZeroPortal extends LightningElement {
         }
         await loadScript(this, PDF_HOST_RESOURCE + '/pdf-lib.min.js');
         await loadScript(this, PDF_HOST_RESOURCE + '/pdf.min.js');
-        // Loading the worker script in the page lets PDF.js run without spawning a Web Worker,
-        // which Lightning Web Security does not allow.
+        // Loading the worker script in the page avoids a Web Worker, which Lightning Web Security blocks.
         await loadScript(this, PDF_HOST_RESOURCE + '/pdf.worker.min.js');
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_HOST_RESOURCE + '/pdf.worker.min.js';
         await loadScript(this, PDF_HOST_RESOURCE + '/engine.js');
     }
 
-    /** @param page page size and PDF-to-screen transform at scale 1, from the engine */
+    /** @param page page size and PDF-to-screen transform at scale 1 */
     addHotspot(spot, wrapper, page, scale) {
         const [a, b, c, d, e, f] = page.transform.map((value) => value * scale);
         const toScreen = (x, y) => [a * x + c * y + e, b * x + d * y + f];
@@ -1006,12 +1100,16 @@ export default class SignZeroPortal extends LightningElement {
     // ---------- guided navigation ----------
 
     handleJumpToNextField() {
+        if (!this.consentAccepted) {
+            this.askConsent(() => this.handleJumpToNextField());
+            return;
+        }
         const pending = this.signatureLocations.filter((loc) => !loc.signed);
         if (pending.length === 0) {
             this.handleFinalSubmission();
             return;
         }
-        // guidedIndex is a position in document order, so signing a spot never shifts where "next" lands.
+        // guidedIndex is in document order, so signing a spot never shifts where "next" lands.
         const locations = this.signatureLocations;
         const next = pending.find((loc) => locations.indexOf(loc) > this.guidedIndex) || pending[0];
         this.guidedIndex = locations.indexOf(next);
@@ -1026,7 +1124,11 @@ export default class SignZeroPortal extends LightningElement {
     }
 
     handleSpotClick(spotId) {
-        if (!this.consentAccepted || this.isSubmitting) {
+        if (this.isSubmitting) {
+            return;
+        }
+        if (!this.consentAccepted) {
+            this.askConsent(() => this.handleSpotClick(spotId));
             return;
         }
         const spot = this.signatureLocations.find((loc) => loc.id === spotId);
@@ -1048,13 +1150,15 @@ export default class SignZeroPortal extends LightningElement {
         if (element) {
             element.textContent = '';
             const img = document.createElement('img');
+            // Resized once loaded and whenever a new signature replaces it.
+            img.onload = () => sizeSignatureImage(img, element);
             img.src = this.adoptedSignature;
             img.alt = `Signature of ${this.recipientName}`;
             element.appendChild(img);
             element.classList.add('signed');
             element.setAttribute('aria-label', 'Signed');
         }
-        // Reassign so getters that count remaining spots re-render.
+        // Reassign so counts re-render.
         this.signatureLocations = [...this.signatureLocations];
     }
 
@@ -1068,17 +1172,6 @@ export default class SignZeroPortal extends LightningElement {
     }
     get isUploadMode() {
         return this.signatureMode === 'upload';
-    }
-    get modeTabs() {
-        return [
-            { id: 'type', label: LABELS.tabType },
-            { id: 'draw', label: LABELS.tabDraw },
-            { id: 'upload', label: LABELS.tabUpload }
-        ].map((tab) => ({
-            ...tab,
-            selected: tab.id === this.signatureMode,
-            className: tab.id === this.signatureMode ? 'mode-tab active' : 'mode-tab'
-        }));
     }
     get typedStyleOptions() {
         const name = this.typedName || this.recipientName;
@@ -1103,7 +1196,7 @@ export default class SignZeroPortal extends LightningElement {
     openSignaturePad() {
         this.sigCtx = null;
         this.padIsEmpty = true;
-        // Like most e-signature services, start on a typed signature with the signer's name filled in.
+        // Start on a typed signature with the signer's name filled in.
         this.signatureMode = 'type';
         this.typedName = this.typedName || this.recipientName;
         this.uploadError = null;
@@ -1111,7 +1204,7 @@ export default class SignZeroPortal extends LightningElement {
     }
 
     handleModeChange(event) {
-        this.signatureMode = event.currentTarget.dataset.mode;
+        this.signatureMode = event.target.value;
         this.sigCtx = null; // the draw canvas is set up again when its tab is shown
         this.padIsEmpty = true;
     }
@@ -1203,7 +1296,7 @@ export default class SignZeroPortal extends LightningElement {
         this.padIsEmpty = true;
     }
 
-    /** Typed signature: the name in the chosen handwriting-style font, rendered to a PNG. */
+    /** Typed signature: the name in the chosen font, as a PNG. */
     renderTypedSignature() {
         const style = TYPED_STYLES[this.typedStyle];
         const canvas = document.createElement('canvas');
@@ -1220,45 +1313,89 @@ export default class SignZeroPortal extends LightningElement {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-        return canvas.toDataURL('image/png');
+        return trimToInk(canvas).toDataURL('image/png');
     }
 
-    /** Uploaded signature: scaled to fit, with a white or near-white background made transparent. */
+    get toastClass() {
+        return `slds-notify slds-notify_toast ${this.toastIsError ? 'slds-theme_error' : 'slds-theme_info'}`;
+    }
+    get toastIcon() {
+        return this.toastIsError ? 'utility:error' : 'utility:info';
+    }
+
+    /** Uploaded signature: only the ink is kept. */
     handleUpload(event) {
-        const file = event.target.files && event.target.files[0];
+        this.processUpload(event.detail.files && event.detail.files[0]);
+    }
+
+    processUpload(file) {
         this.uploadError = null;
         this.uploadedSignature = null;
         if (!file || !['image/png', 'image/jpeg'].includes(file.type) || file.size > MAX_UPLOAD_BYTES) {
             this.uploadError = LABELS.uploadInvalid;
             return;
         }
+        this.isProcessingUpload = true;
         const reader = new FileReader();
         reader.onload = () => {
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = SIGNATURE_IMAGE_WIDTH;
-                canvas.height = SIGNATURE_IMAGE_HEIGHT;
-                const ctx = canvas.getContext('2d');
-                const scale = Math.min(canvas.width / img.width, canvas.height / img.height, 1);
-                const w = img.width * scale;
-                const h = img.height * scale;
-                ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
-                const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                for (let i = 0; i < pixels.data.length; i += 4) {
-                    if (pixels.data[i] > 235 && pixels.data[i + 1] > 235 && pixels.data[i + 2] > 235) {
-                        pixels.data[i + 3] = 0;
+                // Let the spinner paint before the pixel work blocks the page.
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                setTimeout(() => {
+                    const signature = this.extractUploadedSignature(img);
+                    if (signature) {
+                        this.uploadedSignature = signature;
+                    } else {
+                        this.uploadError = LABELS.uploadNoInk;
                     }
-                }
-                ctx.putImageData(pixels, 0, 0);
-                this.uploadedSignature = canvas.toDataURL('image/png');
+                    this.isProcessingUpload = false;
+                }, 50);
             };
             img.onerror = () => {
                 this.uploadError = LABELS.uploadInvalid;
+                this.isProcessingUpload = false;
             };
             img.src = reader.result;
         };
+        reader.onerror = () => {
+            this.uploadError = LABELS.uploadInvalid;
+            this.isProcessingUpload = false;
+        };
         reader.readAsDataURL(file);
+    }
+
+    /**
+     * Keeps just the signature from a photo or scan, as PDF readers do: paper becomes transparent, shadows are ignored
+     * and the image is cropped to the strokes. Returns a PNG data URL, or null when no ink was found.
+     */
+    extractUploadedSignature(img) {
+        const scale = Math.min(UPLOAD_WORK_SIZE / Math.max(img.width, img.height), 1);
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const work = document.createElement('canvas');
+        work.width = width;
+        work.height = height;
+        const workCtx = work.getContext('2d');
+        // A transparent PNG is read as ink on white paper.
+        workCtx.fillStyle = '#ffffff';
+        workCtx.fillRect(0, 0, width, height);
+        workCtx.drawImage(img, 0, 0, width, height);
+        const result = extractInk(workCtx.getImageData(0, 0, width, height));
+        if (!result) {
+            return null;
+        }
+        const pixels = workCtx.createImageData(width, height);
+        pixels.data.set(result.data);
+        workCtx.putImageData(pixels, 0, 0);
+
+        const { crop } = result;
+        const fit = Math.min(1, SIGNATURE_MAX_HEIGHT / crop.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(crop.width * fit));
+        canvas.height = Math.max(1, Math.round(crop.height * fit));
+        canvas.getContext('2d').drawImage(work, crop.x, crop.y, crop.width, crop.height, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/png');
     }
 
     confirmSignaturePlacement() {
@@ -1266,7 +1403,7 @@ export default class SignZeroPortal extends LightningElement {
             return;
         }
         if (this.isDrawMode) {
-            this.adoptedSignature = this.template.querySelector('.sig-pad').toDataURL('image/png');
+            this.adoptedSignature = trimToInk(this.template.querySelector('.sig-pad')).toDataURL('image/png');
             this.adoptedMethod = 'Drawn';
         } else if (this.isTypeMode) {
             this.adoptedSignature = this.renderTypedSignature();
@@ -1307,7 +1444,7 @@ export default class SignZeroPortal extends LightningElement {
             const result = await submitExecutedDocument({
                 rawToken: this.rawToken,
                 executedPdfBase64: stamped,
-                // An uploaded image stays in the browser: it reaches Salesforce only inside the signed PDF.
+                // An uploaded image reaches Salesforce only inside the signed PDF.
                 signatureImageBase64: this.adoptedMethod === 'Uploaded' ? null : this.adoptedSignature.split(',')[1],
                 signatureMethod: this.adoptedMethod,
                 userAgent: navigator.userAgent
@@ -1321,7 +1458,7 @@ export default class SignZeroPortal extends LightningElement {
         }
     }
 
-    /** Writes the adopted signature into the PDF itself (in the PDF engine) and returns it as base64. */
+    /** Stamps the adopted signature into the PDF and returns it as base64. */
     async stampSignatures() {
         const signedAt = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
         const stamped = await this.runPdfEngine('stamp', {
@@ -1330,7 +1467,7 @@ export default class SignZeroPortal extends LightningElement {
             spots: this.signatureLocations.map(({ pageIndex, pdfX, pdfY, height }) => ({ pageIndex, pdfX, pdfY, height })),
             tagRects: this.tagRects.map(({ pageIndex, rect }) => ({ pageIndex, rect: { ...rect } })),
             signerRole: this.signerRole,
-            // The last signer also clears tags left for roles nobody signed as.
+            // The last signer also clears tags for roles nobody signed as.
             clearAllTags: this.isLastSigner,
             caption: format(LABELS.stampCaption, this.recipientName, signedAt)
         });

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Reminder_Schedule__c</fullName>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>When the reminder job runs, as a Salesforce cron expression in the time zone of the user who scheduled it. Default 0 0 9 * * ? (daily at 9:00). The job picks up a change the next time it runs.</inlineHelpText>
+    <label>Reminder Schedule</label>
+    <length>120</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

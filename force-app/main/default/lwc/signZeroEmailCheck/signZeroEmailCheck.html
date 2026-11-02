@@ -1,0 +1,37 @@
+<template>
+    <lightning-card title={labels.title} icon-name="utility:email">
+        <div class="slds-p-horizontal_medium">
+            <template lwc:if={isLoading}>
+                <div class="slds-is-relative slds-p-vertical_large">
+                    <lightning-spinner alternative-text={labels.loading} size="small"></lightning-spinner>
+                </div>
+            </template>
+            <template lwc:if={isOk}>
+                <div class="slds-media slds-media_small slds-media_center">
+                    <div class="slds-media__figure">
+                        <lightning-icon icon-name="utility:success" variant="success" size="x-small"
+                            alternative-text="success"></lightning-icon>
+                    </div>
+                    <div class="slds-media__body">{labels.ok}</div>
+                </div>
+            </template>
+            <template lwc:if={hasIssues}>
+                <p class="slds-m-bottom_small">{labels.intro}</p>
+                <ul>
+                    <template for:each={issues} for:item="issue">
+                        <li key={issue.key} class="slds-media slds-media_small slds-m-bottom_small">
+                            <div class="slds-media__figure">
+                                <lightning-icon icon-name={issue.iconName} variant={issue.iconVariant} size="x-small"
+                                    alternative-text={issue.alternativeText}></lightning-icon>
+                            </div>
+                            <div class="slds-media__body">{issue.message}</div>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:if={errorMessage}>
+                <p class="slds-text-color_error" role="alert">{errorMessage}</p>
+            </template>
+        </div>
+    </lightning-card>
+</template>

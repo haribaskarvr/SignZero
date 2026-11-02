@@ -2,7 +2,11 @@
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>SignZeroAuditService</members>
+        <members>SignZeroBrandingAdmin</members>
+        <members>SignZeroBrandingController</members>
         <members>SignZeroCertificateController</members>
+        <members>SignZeroConstants</members>
+        <members>SignZeroEmailCheck</members>
         <members>SignZeroGatewayController</members>
         <members>SignZeroInvitationService</members>
         <members>SignZeroNotifier</members>
@@ -11,11 +15,13 @@
         <members>SignZeroProgressionJob</members>
         <members>SignZeroRecallController</members>
         <members>SignZeroRecordGuard</members>
+        <members>SignZeroReminderJob</members>
         <members>SignZeroResendController</members>
         <members>SignZeroSealService</members>
         <members>SignZeroSettings</members>
         <members>SignZeroSigner</members>
         <members>SignZeroTest</members>
+        <members>SignZeroTokenVault</members>
         <name>ApexClass</name>
     </types>
     <types>
@@ -47,7 +53,11 @@
         <members>SignZero_Audit_Trail__c.SignZero_Recipient__c</members>
         <members>SignZero_Audit_Trail__c.Timestamp_UTC__c</members>
         <members>SignZero_Audit_Trail__c.User_Agent__c</members>
+        <members>SignZero_Branding__c.Favicon_Url__c</members>
+        <members>SignZero_Branding__c.Logo_Url__c</members>
+        <members>SignZero_Branding__c.Org_Wide_Email_Address__c</members>
         <members>SignZero_Diagnostics__c.Performance_Logs__c</members>
+        <members>SignZero_Encryption__c.Token_Key__c</members>
         <members>SignZero_Event__e.Action__c</members>
         <members>SignZero_Event__e.Recipient_Id__c</members>
         <members>SignZero_Event__e.SignZero_Request_Id__c</members>
@@ -56,18 +66,21 @@
         <members>SignZero_Recipient__c.Decline_Reason__c</members>
         <members>SignZero_Recipient__c.Delegated_From__c</members>
         <members>SignZero_Recipient__c.Email__c</members>
+        <members>SignZero_Recipient__c.Expiry_Notified_At__c</members>
         <members>SignZero_Recipient__c.Last_Known_IP__c</members>
         <members>SignZero_Recipient__c.List_Order__c</members>
         <members>SignZero_Recipient__c.Reassign_Reason__c</members>
         <members>SignZero_Recipient__c.Reassigned_To__c</members>
+        <members>SignZero_Recipient__c.Reminders_Sent__c</members>
         <members>SignZero_Recipient__c.Routing_Order__c</members>
         <members>SignZero_Recipient__c.Sent_At__c</members>
-        <members>SignZero_Recipient__c.SignZero_Request__c</members>
         <members>SignZero_Recipient__c.Signature_Method__c</members>
         <members>SignZero_Recipient__c.Signed_At__c</members>
         <members>SignZero_Recipient__c.Signer_Role__c</members>
-        <members>SignZero_Recipient__c.Status_Display__c</members>
+        <members>SignZero_Recipient__c.SignZero_Request__c</members>
         <members>SignZero_Recipient__c.Status__c</members>
+        <members>SignZero_Recipient__c.Status_Display__c</members>
+        <members>SignZero_Recipient__c.Token_Encrypted__c</members>
         <members>SignZero_Recipient__c.Token_Expires_At__c</members>
         <members>SignZero_Recipient__c.Token_Hash__c</members>
         <members>SignZero_Recipient__c.User_Agent__c</members>
@@ -96,11 +109,14 @@
         <members>SignZero_Setting__mdt.Allow_Reassignment__c</members>
         <members>SignZero_Setting__mdt.Certificate_Name__c</members>
         <members>SignZero_Setting__mdt.Company_Name__c</members>
-        <members>SignZero_Setting__mdt.Logo_Url__c</members>
         <members>SignZero_Setting__mdt.Max_Document_Size_KB__c</members>
-        <members>SignZero_Setting__mdt.Org_Wide_Email_Address__c</members>
         <members>SignZero_Setting__mdt.Primary_Color__c</members>
         <members>SignZero_Setting__mdt.Primary_Hover_Color__c</members>
+        <members>SignZero_Setting__mdt.Reminder_First_After_Days__c</members>
+        <members>SignZero_Setting__mdt.Reminder_Limit__c</members>
+        <members>SignZero_Setting__mdt.Reminder_Repeat_Days__c</members>
+        <members>SignZero_Setting__mdt.Reminder_Schedule__c</members>
+        <members>SignZero_Setting__mdt.Require_Consent_Before_Viewing__c</members>
         <members>SignZero_Setting__mdt.Site_Base_Url__c</members>
         <members>SignZero_Setting__mdt.Token_Validity_Days__c</members>
         <name>CustomField</name>
@@ -108,12 +124,21 @@
     <types>
         <members>SZ_Adopt_Sign</members>
         <members>SZ_Back</members>
+        <members>SZ_Bell_Body</members>
+        <members>SZ_Bell_Invite_Failed</members>
+        <members>SZ_Bell_Link_Expired</members>
+        <members>SZ_Bell_Link_Expired_Body</members>
+        <members>SZ_Bell_Reassigned</members>
+        <members>SZ_Bell_Signed</members>
+        <members>SZ_Bell_Signed_Progress</members>
+        <members>SZ_Bell_Title</members>
         <members>SZ_Cancel</members>
         <members>SZ_Change_Signature</members>
         <members>SZ_Clear</members>
         <members>SZ_Consent_Accept</members>
         <members>SZ_Consent_Body</members>
         <members>SZ_Consent_Greeting</members>
+        <members>SZ_Consent_Not_Now</members>
         <members>SZ_Consent_Paper_Option</members>
         <members>SZ_Consent_Title</members>
         <members>SZ_Decline</members>
@@ -126,6 +151,15 @@
         <members>SZ_Done_Pending_Message</members>
         <members>SZ_Done_Title</members>
         <members>SZ_Draw_Help</members>
+        <members>SZ_Email_Check_Deliverability</members>
+        <members>SZ_Email_Check_Intro</members>
+        <members>SZ_Email_Check_Loading</members>
+        <members>SZ_Email_Check_No_Owea</members>
+        <members>SZ_Email_Check_Ok</members>
+        <members>SZ_Email_Check_Owea_Missing</members>
+        <members>SZ_Email_Check_Owea_Unverified</members>
+        <members>SZ_Email_Check_Title</members>
+        <members>SZ_Email_Check_User_Unverified</members>
         <members>SZ_Err_Consent_Required</members>
         <members>SZ_Err_Invalid_Pdf</members>
         <members>SZ_Err_Invalid_Session</members>
@@ -136,6 +170,14 @@
         <members>SZ_Err_Site_Not_Found</members>
         <members>SZ_Err_Too_Large</members>
         <members>SZ_Error_Title</members>
+        <members>SZ_Favicon_Err_Type</members>
+        <members>SZ_Favicon_Help</members>
+        <members>SZ_Favicon_None</members>
+        <members>SZ_Favicon_Remove</members>
+        <members>SZ_Favicon_Saved</members>
+        <members>SZ_File_Certificate</members>
+        <members>SZ_File_Executed</members>
+        <members>SZ_File_Executed_With_Certificate</members>
         <members>SZ_Fit_Page</members>
         <members>SZ_Fit_Width</members>
         <members>SZ_Flow_Error_Heading</members>
@@ -158,11 +200,47 @@
         <members>SZ_Guide_Next</members>
         <members>SZ_Guide_Start_Many</members>
         <members>SZ_Guide_Start_One</members>
+        <members>SZ_Image_Err_No_Access</members>
+        <members>SZ_Image_Err_Save</members>
+        <members>SZ_Image_Err_Size</members>
+        <members>SZ_Image_Saving</members>
         <members>SZ_Loading_Document</members>
         <members>SZ_Loading_Session</members>
+        <members>SZ_Logo_Err_Type</members>
+        <members>SZ_Logo_Help</members>
+        <members>SZ_Logo_None</members>
+        <members>SZ_Logo_Remove</members>
+        <members>SZ_Logo_Saved</members>
+        <members>SZ_Mail_Completed_Attached</members>
+        <members>SZ_Mail_Completed_Intro</members>
+        <members>SZ_Mail_Completed_Subject</members>
+        <members>SZ_Mail_Final_Reminder_Note</members>
+        <members>SZ_Mail_Final_Reminder_Subject</members>
+        <members>SZ_Mail_Greeting</members>
+        <members>SZ_Mail_Invite_Expiry</members>
+        <members>SZ_Mail_Invite_Intro</members>
+        <members>SZ_Mail_Invite_Subject</members>
+        <members>SZ_Mail_New_Link_Note</members>
+        <members>SZ_Mail_No_Action</members>
+        <members>SZ_Mail_Open_Link</members>
+        <members>SZ_Mail_Reason</members>
+        <members>SZ_Mail_Recall_Intro</members>
+        <members>SZ_Mail_Recall_Subject</members>
+        <members>SZ_Mail_Reminder_Expiry</members>
+        <members>SZ_Mail_Reminder_Intro</members>
+        <members>SZ_Mail_Reminder_Subject</members>
         <members>SZ_Missing_Token</members>
         <members>SZ_Next_Page</members>
         <members>SZ_No_Tags_Notice</members>
+        <members>SZ_Outcome_Completed</members>
+        <members>SZ_Outcome_Declined</members>
+        <members>SZ_Outcome_Recalled</members>
+        <members>SZ_Outcome_Sealing_Failed</members>
+        <members>SZ_Owner_A_Signer</members>
+        <members>SZ_Owner_Completed</members>
+        <members>SZ_Owner_Declined</members>
+        <members>SZ_Owner_Recalled</members>
+        <members>SZ_Owner_Subject</members>
         <members>SZ_Pad_Help</members>
         <members>SZ_Pad_Title</members>
         <members>SZ_Page_Of</members>
@@ -228,6 +306,8 @@
         <members>SZ_Upload_Help</members>
         <members>SZ_Upload_Invalid</members>
         <members>SZ_Upload_Label</members>
+        <members>SZ_Upload_No_Ink</members>
+        <members>SZ_Upload_Processing</members>
         <members>SZ_Zoom_In</members>
         <members>SZ_Zoom_Out</members>
         <name>CustomLabel</name>
@@ -246,7 +326,9 @@
     </types>
     <types>
         <members>SignZero_Audit_Trail__c</members>
+        <members>SignZero_Branding__c</members>
         <members>SignZero_Diagnostics__c</members>
+        <members>SignZero_Encryption__c</members>
         <members>SignZero_Event__e</members>
         <members>SignZero_Recipient__c</members>
         <members>SignZero_Request__c</members>
@@ -304,7 +386,7 @@
     <types>
         <members>SignZero_Home</members>
         <members>SignZero_Recipient_Record_Page</members>
-        <members>Signature_Request_Record_Page</members>
+        <members>SignZero_Request_Record_Page</members>
         <name>FlexiPage</name>
     </types>
     <types>
@@ -325,6 +407,11 @@
         <name>Layout</name>
     </types>
     <types>
+        <members>signZeroEmailCheck</members>
+        <members>signZeroFaviconEditor</members>
+        <members>signZeroHeader</members>
+        <members>signZeroImageUpload</members>
+        <members>signZeroLogoEditor</members>
         <members>signZeroPortal</members>
         <members>signZeroRecall</members>
         <members>signZeroResend</members>

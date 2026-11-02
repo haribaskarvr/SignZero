@@ -1,14 +1,12 @@
 /**
- * Seals fully signed envelopes: hashes the executed PDF, optionally signs the hash with an org
- * X.509 certificate, renders the Certificate of Completion, builds a combined "executed + certificate"
- * PDF, and files them on the source record (and any extra records).
- *
- * Called from SignZeroProgressionJob (platform event context). Everything that reads and renders happens
- * before any DML, so a failure leaves the envelope untouched apart from its error message.
+ * @description Seals fully signed envelopes: hashes the executed PDF, optionally signs the hash with an org
+ *   certificate, renders the Certificate of Completion and files the results on the source record. Called from
+ *   SignZeroProgressionJob. All reads and rendering happen before any DML, so a failure leaves the envelope untouched
+ *   apart from its error message.
  */
 public without sharing class SignZeroSealService {
   /**
-   * Hashes a file, for the document hashes on the envelope and in the audit trail.
+   * @description Hashes a file, for the document hashes on the envelope and in the audit trail.
    * @param fileData the file to hash
    * @return its SHA-256 hash, as lower-case hex
    */
@@ -18,6 +16,9 @@ public without sharing class SignZeroSealService {
     );
   }
 
+  /**
+   * @description Everything sealing one envelope needs, gathered before any DML.
+   */
   private class SealContext {
     SignZero_Request__c req;
     Blob executed;
@@ -31,7 +32,7 @@ public without sharing class SignZeroSealService {
   }
 
   /**
-   * Seals each envelope, completes it and emails the signers; a failure is recorded on that envelope.
+   * @description Seals each envelope, completes it and emails the signers; a failure is recorded on that envelope.
    * @param requestIds envelopes whose signers have all signed
    */
   public static void sealAndFinalize(List<Id> requestIds) {
@@ -58,7 +59,7 @@ public without sharing class SignZeroSealService {
       ]
     );
 
-    // 1. Everything that does not write: load, hash, sign, render, combine.
+    // 1. Reads: load, hash, sign, render, combine.
     String certName = SignZeroSettings.get().Certificate_Name__c;
     for (Id requestId : requestIds) {
       SignZero_Request__c req = requests.get(requestId);
@@ -165,7 +166,6 @@ public without sharing class SignZeroSealService {
       if (ctx.combinedVersion != null) {
         versions.add(ctx.combinedVersion);
       }
-      // One file, shown on every record that needs it: the envelope and any extra records.
       Set<Id> linkTo = extraRecordIds(ctx.req);
       linkTo.add(ctx.req.Id);
       linkTo.remove(filingRecordId(ctx.req)); // already linked through FirstPublishLocationId
@@ -184,7 +184,7 @@ public without sharing class SignZeroSealService {
       updates.add(
         new SignZero_Request__c(
           Id = ctx.req.Id,
-          Status__c = 'Completed',
+          Status__c = SignZeroConstants.ENVELOPE_COMPLETED,
           Completed_At__c = Datetime.now(),
           Post_Sign_Hash__c = ctx.postHash,
           PKI_Signature__c = ctx.pkiSignature,
@@ -200,7 +200,7 @@ public without sharing class SignZeroSealService {
         SignZeroAuditService.Entry e = new SignZeroAuditService.Entry(
           r.Id,
           ctx.req.Id,
-          'Completed'
+          SignZeroConstants.EVENT_COMPLETED
         );
         e.documentHash = ctx.postHash;
         e.details =
@@ -226,19 +226,26 @@ public without sharing class SignZeroSealService {
         );
         SignZeroNotifier.notifyOwner(
           ctx.req,
-          'Completed',
-          'All parties have signed. The executed agreement and Certificate of Completion are attached to the record.'
+          System.Label.SZ_Outcome_Completed,
+          System.Label.SZ_Owner_Completed
         );
       } else {
         SignZeroNotifier.notifyOwner(
           ctx.req,
-          'Sealing failed',
+          System.Label.SZ_Outcome_Sealing_Failed,
           ctx.req.Error_Message__c
         );
       }
     }
   }
 
+  /**
+   * @description Builds a PDF Salesforce File.
+   * @param title the file title
+   * @param body the PDF
+   * @param home the record the file is first shared with
+   * @return the unsaved file
+   */
   private static ContentVersion newFile(String title, Blob body, Id home) {
     return new ContentVersion(
       Title = title,
@@ -248,6 +255,11 @@ public without sharing class SignZeroSealService {
     );
   }
 
+  /**
+   * @description Reads the extra records the signed files also go on; values that are not record Ids are ignored.
+   * @param req the envelope (Related_Record_Ids__c)
+   * @return the record Ids
+   */
   private static Set<Id> extraRecordIds(SignZero_Request__c req) {
     Set<Id> ids = new Set<Id>();
     if (String.isNotBlank(req.Related_Record_Ids__c)) {
@@ -255,14 +267,19 @@ public without sharing class SignZeroSealService {
         try {
           ids.add(Id.valueOf(raw.trim()));
         } catch (StringException e) {
-          // ignore values that are not record Ids
+          // not a record Id
         }
       }
     }
     return ids;
   }
 
-  // Files go on the source record when it is a valid record Id, otherwise on the envelope.
+  /**
+   * @description Picks where the signed files go: the source record when it is a valid record Id, otherwise the
+   *   envelope.
+   * @param req the envelope (Source_Record_Id__c)
+   * @return the record Id
+   */
   private static Id filingRecordId(SignZero_Request__c req) {
     if (String.isNotBlank(req.Source_Record_Id__c)) {
       try {

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Token_Encrypted__c</fullName>
+    <description>The signing token, encrypted with the key in SignZero Encryption, so reminders can re-send the same link. Cleared once the link can no longer be reminded (signed, declined, delegated, recalled). Links are checked against Token Hash, never this field. Not on layouts or in permission sets.</description>
+    <externalId>false</externalId>
+    <label>Token Encrypted</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

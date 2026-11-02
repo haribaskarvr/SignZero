@@ -330,6 +330,51 @@ private class SignZeroTest {
   }
 
   @IsTest
+  static void consentFirstWithholdsTheDocumentUntilTheSignerAgrees() {
+    Id requestId = dispatchTwoSigners();
+    SignZeroSettings.cached.Require_Consent_Before_Viewing__c = true;
+    Id signerId = recipient(requestId, 1).Id;
+    plantToken(signerId, TOKEN_A);
+
+    Map<String, Object> before = SignZeroGatewayController.initializeSession(
+      TOKEN_A,
+      'TestAgent'
+    );
+    Assert.areEqual(true, before.get('consentBeforeViewing'));
+    Assert.isNull(before.get('pdfBase64'), 'nothing of the document before consent');
+    Assert.areEqual('Sent', recipient(requestId, 1).Status__c);
+    Assert.areEqual(
+      0,
+      [
+        SELECT COUNT()
+        FROM SignZero_Audit_Trail__c
+        WHERE SignZero_Recipient__c = :signerId AND Event_Type__c = 'Viewed'
+      ]
+    );
+
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent');
+    Map<String, Object> after = SignZeroGatewayController.initializeSession(
+      TOKEN_A,
+      'TestAgent'
+    );
+    Assert.areEqual(false, after.get('consentBeforeViewing'));
+    Assert.isNotNull(after.get('pdfBase64'));
+    SignZero_Recipient__c viewed = [
+      SELECT Status__c, Viewed_At__c
+      FROM SignZero_Recipient__c
+      WHERE Id = :signerId
+    ];
+    Assert.areEqual('Consented', viewed.Status__c);
+    Assert.isNotNull(viewed.Viewed_At__c, 'the first view after consent is recorded');
+
+    // Off (the default): the document comes with the session, before any consent.
+    SignZeroSettings.cached.Require_Consent_Before_Viewing__c = false;
+    Assert.isFalse(SignZeroSettings.requireConsentBeforeViewing());
+  }
+
+
+
+  @IsTest
   static void gatewayRejectsBadRequests() {
     Id requestId = dispatchTwoSigners();
     SignZero_Recipient__c first = recipient(requestId, 1);
@@ -892,7 +937,13 @@ private class SignZeroTest {
     Assert.areEqual(1, SignZeroNotifier.sentInTest.size());
     Messaging.SingleEmailMessage mail = SignZeroNotifier.sentInTest[0];
     Assert.areEqual('casey@example.com', mail.getToAddresses()[0]);
-    Assert.areEqual('Recalled: Master Services Agreement', mail.getSubject());
+    Assert.areEqual(
+      SignZeroNotifier.fill(
+        System.Label.SZ_Mail_Recall_Subject,
+        new List<Object>{ 'Master Services Agreement' }
+      ),
+      mail.getSubject()
+    );
     Assert.isTrue(mail.getPlainTextBody().contains('Wrong version attached'));
 
     List<SignZero_Audit_Trail__c> events = [
@@ -1126,5 +1177,395 @@ private class SignZeroTest {
       html.contains('Casey Customer') &&
       html.contains('Organisation Digital Signature')
     );
+  }
+
+  @IsTest
+  static void emailCheckFlagsAMissingOrgWideAddress() {
+    useTestSettings();
+    setBranding(SignZero_Branding__c.Org_Wide_Email_Address__c, 'nobody@example.com');
+    List<SignZeroEmailCheck.Issue> issues = SignZeroEmailCheck.check();
+    Assert.isFalse(issues.isEmpty());
+    Assert.areEqual(SignZeroConstants.SEVERITY_ERROR, issues[0].severity);
+    Assert.isTrue(issues[0].message.contains('nobody@example.com'), issues[0].message);
+    SignZeroEmailCheck.FlowResult result = SignZeroEmailCheck.checkForFlow()[0];
+    Assert.isTrue(result.hasErrors);
+    Assert.isTrue(result.hasIssues);
+  }
+
+  @IsTest
+  static void emailCheckCoversEverySetup() {
+    // HasUserVerifiedEmail is read-only, so build the users the way a query would return them.
+    User unverified = (User) JSON.deserialize(
+      '{"Email":"pat@example.com","HasUserVerifiedEmail":false}',
+      User.class
+    );
+    User verified = (User) JSON.deserialize(
+      '{"Email":"pat@example.com","HasUserVerifiedEmail":true}',
+      User.class
+    );
+
+    List<SignZeroEmailCheck.Issue> issues = SignZeroEmailCheck.evaluate(false, null, false, false, unverified);
+    Assert.areEqual(3, issues.size());
+    Assert.areEqual(System.Label.SZ_Email_Check_Deliverability, issues[0].message);
+    Assert.isTrue(issues[1].message.contains('pat@example.com'));
+    Assert.areEqual(SignZeroConstants.SEVERITY_WARNING, issues[2].severity);
+
+    issues = SignZeroEmailCheck.evaluate(true, null, false, false, verified);
+    Assert.areEqual(1, issues.size());
+    Assert.areEqual(SignZeroConstants.SEVERITY_WARNING, issues[0].severity);
+
+    issues = SignZeroEmailCheck.evaluate(true, 'esign@example.com', true, false, null);
+    Assert.areEqual(1, issues.size());
+    Assert.areEqual(SignZeroConstants.SEVERITY_ERROR, issues[0].severity);
+    Assert.isTrue(issues[0].message.contains('esign@example.com'));
+
+    Assert.isTrue(
+      SignZeroEmailCheck.evaluate(true, 'esign@example.com', true, true, null).isEmpty()
+    );
+  }
+
+  @IsTest
+  static void emailCheckWarnsWithoutAnOrgWideAddress() {
+    useTestSettings();
+    setBranding(SignZero_Branding__c.Org_Wide_Email_Address__c, null);
+    List<SignZeroEmailCheck.Issue> issues = SignZeroEmailCheck.check();
+    SignZeroEmailCheck.Issue last = issues[issues.size() - 1];
+    Assert.areEqual(SignZeroConstants.SEVERITY_WARNING, last.severity);
+    Assert.areEqual(System.Label.SZ_Email_Check_No_Owea, last.message);
+    for (SignZeroEmailCheck.Issue issue : issues) {
+      // Errors come before warnings.
+      if (issue !== last) {
+        Assert.areEqual(SignZeroConstants.SEVERITY_ERROR, issue.severity);
+      }
+    }
+    Assert.isTrue(SignZeroEmailCheck.checkForFlow()[0].hasIssues);
+  }
+
+  private static List<SignZero_Recipient__c> awaitingSigners(Id requestId) {
+    return [
+      SELECT
+        Id,
+        Name,
+        Sent_At__c,
+        Token_Hash__c,
+        Token_Expires_At__c,
+        Reminders_Sent__c,
+        Expiry_Notified_At__c,
+        SignZero_Request__c,
+        SignZero_Request__r.Name,
+        SignZero_Request__r.OwnerId,
+        SignZero_Request__r.Document_Name__c
+      FROM SignZero_Recipient__c
+      WHERE SignZero_Request__c = :requestId AND Status__c = 'Sent'
+    ];
+  }
+
+  @IsTest
+  static void remindersFollowTheScheduleThenTheSenderIsToldTheLinkExpired() {
+    Id requestId = dispatchTwoSigners();
+    SignZeroSettings.cached.Reminder_First_After_Days__c = 2;
+    SignZeroSettings.cached.Reminder_Repeat_Days__c = 3;
+    SignZeroSettings.cached.Reminder_Limit__c = 2;
+    SignZeroNotifier.sentInTest.clear();
+    Datetime now = Datetime.now();
+
+    // Not due yet.
+    SignZeroReminderJob.process(awaitingSigners(requestId), now.addDays(1));
+    Assert.areEqual(0, SignZeroNotifier.sentInTest.size());
+
+    // First reminder, counted.
+    List<SignZero_Recipient__c> before = awaitingSigners(requestId);
+    SignZeroReminderJob.process(before, now.addDays(2).addMinutes(1));
+    Assert.areEqual(1, SignZeroNotifier.sentInTest.size());
+    Messaging.SingleEmailMessage first = SignZeroNotifier.sentInTest[0];
+    Assert.areEqual(
+      SignZeroNotifier.fill(
+        System.Label.SZ_Mail_Reminder_Subject,
+        new List<Object>{ 'Master Services Agreement' }
+      ),
+      first.getSubject()
+    );
+    Assert.isTrue(
+      first.getHtmlBody().contains('<strong>Master Services Agreement</strong>'),
+      first.getHtmlBody()
+    );
+    SignZero_Recipient__c afterFirst = awaitingSigners(requestId)[0];
+    Assert.areEqual(1, afterFirst.Reminders_Sent__c);
+    // Same link as the invitation, valid for longer.
+    Assert.areEqual(before[0].Token_Hash__c, afterFirst.Token_Hash__c);
+    Assert.isTrue(afterFirst.Token_Expires_At__c >= before[0].Token_Expires_At__c);
+    Assert.isFalse(
+      first.getPlainTextBody().contains(System.Label.SZ_Mail_New_Link_Note)
+    );
+
+    // Second and last reminder, measured from the first.
+    SignZeroReminderJob.process(
+      awaitingSigners(requestId),
+      afterFirst.Sent_At__c.addDays(3).addMinutes(1)
+    );
+    Assert.areEqual(2, SignZeroNotifier.sentInTest.size());
+    Messaging.SingleEmailMessage last = SignZeroNotifier.sentInTest[1];
+    Assert.areEqual(
+      SignZeroNotifier.fill(
+        System.Label.SZ_Mail_Final_Reminder_Subject,
+        new List<Object>{ 'Master Services Agreement' }
+      ),
+      last.getSubject()
+    );
+    Assert.isTrue(
+      last.getPlainTextBody().contains(System.Label.SZ_Mail_Final_Reminder_Note)
+    );
+
+    // The limit is reached: once the link expires the sender is told, once.
+    SignZero_Recipient__c afterLast = awaitingSigners(requestId)[0];
+    Datetime pastExpiry = afterLast.Token_Expires_At__c.addMinutes(1);
+    SignZeroReminderJob.process(awaitingSigners(requestId), pastExpiry);
+    Assert.areEqual(2, SignZeroNotifier.sentInTest.size());
+    SignZero_Recipient__c notified = awaitingSigners(requestId)[0];
+    Assert.areEqual(pastExpiry, notified.Expiry_Notified_At__c);
+    SignZeroReminderJob.process(awaitingSigners(requestId), pastExpiry.addDays(1));
+    Assert.areEqual(pastExpiry, awaitingSigners(requestId)[0].Expiry_Notified_At__c);
+
+    // A manual resend starts again: a new link, no reminders counted, expiry notice cleared.
+    SignZeroInvitationService.send(new Set<Id>{ notified.Id }, 're-sent by test');
+    SignZero_Recipient__c resent = awaitingSigners(requestId)[0];
+    Assert.areEqual(0, resent.Reminders_Sent__c);
+    Assert.isNull(resent.Expiry_Notified_At__c);
+  }
+
+  @IsTest
+  static void remindersAreOffWhenNotConfigured() {
+    Id requestId = dispatchTwoSigners();
+    SignZeroSettings.cached.Reminder_First_After_Days__c = null;
+    SignZeroNotifier.sentInTest.clear();
+    SignZeroReminderJob.process(
+      awaitingSigners(requestId),
+      Datetime.now().addDays(30)
+    );
+    Assert.areEqual(0, SignZeroNotifier.sentInTest.size());
+    // No reminders will come, so the expired link is reported.
+    Assert.isNotNull(awaitingSigners(requestId)[0].Expiry_Notified_At__c);
+  }
+
+  @IsTest
+  static void reminderJobRunsWhenTheSettingsSay() {
+    dispatchTwoSigners();
+    // Blank means daily at 9:00.
+    Assert.areEqual('0 0 9 * * ?', SignZeroSettings.reminderCronExpression());
+
+    Test.startTest();
+    SignZeroSettings.cached.Reminder_Schedule__c = '0 0 8,14 * * ?';
+    Id first = SignZeroReminderJob.schedule();
+    // Scheduling again replaces the job rather than failing on the name.
+    SignZeroSettings.cached.Reminder_Schedule__c = ' 0 30 7 * * ? ';
+    Id second = SignZeroReminderJob.schedule();
+    // A bad expression keeps the schedule that was there.
+    SignZeroSettings.cached.Reminder_Schedule__c = 'every morning';
+    try {
+      SignZeroReminderJob.schedule();
+      Assert.fail('expected an invalid cron expression to be rejected');
+    } catch (Exception e) {
+      Assert.isNotNull(e.getMessage());
+    }
+    Database.executeBatch(new SignZeroReminderJob());
+    Test.stopTest();
+    Assert.areEqual(0, [SELECT COUNT() FROM CronTrigger WHERE Id = :first]);
+    List<CronTrigger> jobs = [
+      SELECT CronExpression
+      FROM CronTrigger
+      WHERE CronJobDetail.Name = :SignZeroConstants.REMINDER_JOB_NAME
+    ];
+    Assert.areEqual(1, jobs.size());
+    Assert.areEqual('0 30 7 * * ?', jobs[0].CronExpression);
+  }
+
+
+  @IsTest
+  static void reminderSendsANewLinkWhenTheOldOneCannotBeRecovered() {
+    Id requestId = dispatchTwoSigners();
+    SignZeroSettings.cached.Reminder_First_After_Days__c = 1;
+    SignZero_Recipient__c before = awaitingSigners(requestId)[0];
+    // The invitation's token is stored encrypted, and it decrypts to the link's token.
+    SignZero_Recipient__c stored = [
+      SELECT Token_Encrypted__c
+      FROM SignZero_Recipient__c
+      WHERE Id = :before.Id
+      WITH SYSTEM_MODE
+    ];
+    String rawToken = SignZeroTokenVault.decrypt(
+      stored.Token_Encrypted__c,
+      before.Token_Hash__c
+    );
+    Assert.areEqual(
+      before.Token_Hash__c,
+      SignZeroInvitationService.hashToken(rawToken)
+    );
+    Assert.isNull(SignZeroTokenVault.decrypt(stored.Token_Encrypted__c, 'other'));
+    Assert.isNull(SignZeroTokenVault.decrypt('not encrypted', before.Token_Hash__c));
+
+    // Without a recoverable token the reminder carries a new link, and says so.
+    SignZeroRecordGuard.processUpdate = true;
+    update as system new SignZero_Recipient__c(
+      Id = before.Id,
+      Token_Encrypted__c = null
+    );
+    SignZeroRecordGuard.processUpdate = false;
+    SignZeroNotifier.sentInTest.clear();
+    SignZeroReminderJob.process(
+      awaitingSigners(requestId),
+      Datetime.now().addDays(1).addMinutes(1)
+    );
+    Assert.areEqual(1, SignZeroNotifier.sentInTest.size());
+    Assert.isTrue(
+      SignZeroNotifier.sentInTest[0]
+        .getPlainTextBody()
+        .contains(System.Label.SZ_Mail_New_Link_Note)
+    );
+    SignZero_Recipient__c after = [
+      SELECT Token_Hash__c, Token_Encrypted__c
+      FROM SignZero_Recipient__c
+      WHERE Id = :before.Id
+      WITH SYSTEM_MODE
+    ];
+    Assert.areNotEqual(before.Token_Hash__c, after.Token_Hash__c);
+    Assert.isNotNull(after.Token_Encrypted__c);
+    // One key for the org, created on first use.
+    Assert.isNotNull(SignZero_Encryption__c.getOrgDefaults().Token_Key__c);
+  }
+
+  @IsTest
+  static void brandingIsReadableWithoutAToken() {
+    useTestSettings();
+    setBranding(SignZero_Branding__c.Logo_Url__c, 'https://example.com/logo.png');
+    Map<String, String> branding = SignZeroBrandingController.getBranding();
+    Assert.areEqual('Acme Corp', branding.get('companyName'));
+    Assert.areEqual('https://example.com/logo.png', branding.get('logoUrl'));
+  }
+
+  @IsTest
+  static void uploadedLogoBecomesThePublicLogoEverywhere() {
+    useTestSettings();
+    // A 1x1 PNG.
+    String png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    String logo = SignZeroConstants.IMAGE_LOGO;
+
+    String url = SignZeroBrandingAdmin.saveImage(logo, 'acme-logo.png', png);
+
+    Assert.isTrue(String.isNotBlank(url), 'a public link for the logo');
+    Assert.areEqual(url, SignZero_Branding__c.getOrgDefaults().Logo_Url__c);
+    Assert.areEqual(url, SignZeroBrandingController.getBranding().get('logoUrl'));
+    ContentVersion stored = [
+      SELECT Title, PathOnClient
+      FROM ContentVersion
+      WHERE Title = :SignZeroConstants.LOGO_TITLE
+    ];
+    Assert.areEqual(SignZeroConstants.LOGO_TITLE + '.png', stored.PathOnClient);
+
+    // Only images, and not too large.
+    assertImageRejected(logo, 'notes.txt', png, System.Label.SZ_Logo_Err_Type);
+    assertImageRejected(logo, 'icon.ico', png, System.Label.SZ_Logo_Err_Type);
+    assertImageRejected(
+      logo,
+      'huge.png',
+      EncodingUtil.base64Encode(Blob.valueOf('x'.repeat(SignZeroConstants.MAX_IMAGE_BYTES + 1))),
+      System.Label.SZ_Image_Err_Size
+    );
+    assertImageRejected('banner', 'acme.png', png, 'Unknown image kind: banner');
+
+    Assert.areEqual(
+      SignZeroNotifier.fill(
+        System.Label.SZ_Image_Err_Save,
+        new List<Object>{ 'no access' }
+      ),
+      SignZeroBrandingAdmin.saveFailed(new DmlException('no access')).getMessage()
+    );
+
+    SignZeroBrandingAdmin.removeImage(logo);
+    Assert.isNull(SignZero_Branding__c.getOrgDefaults().Logo_Url__c);
+  }
+
+  @IsTest
+  static void uploadedFaviconIsSavedSeparatelyFromTheLogo() {
+    useTestSettings();
+    setBranding(SignZero_Branding__c.Logo_Url__c, 'https://example.com/logo.png');
+    String favicon = SignZeroConstants.IMAGE_FAVICON;
+    String ico = EncodingUtil.base64Encode(Blob.valueOf('icon bytes'));
+
+    String url = SignZeroBrandingAdmin.saveImage(favicon, 'acme.ico', ico);
+
+    SignZero_Branding__c branding = SignZero_Branding__c.getOrgDefaults();
+    Assert.areEqual(url, branding.Favicon_Url__c);
+    Assert.areEqual('https://example.com/logo.png', branding.Logo_Url__c, 'the logo is untouched');
+    Assert.areEqual(url, SignZeroBrandingController.getBranding().get('faviconUrl'));
+    Assert.areEqual(
+      SignZeroConstants.FAVICON_TITLE + '.ico',
+      [SELECT PathOnClient FROM ContentVersion WHERE Title = :SignZeroConstants.FAVICON_TITLE].PathOnClient
+    );
+    assertImageRejected(favicon, 'icon.gif', ico, System.Label.SZ_Favicon_Err_Type);
+
+    SignZeroBrandingAdmin.removeImage(favicon);
+    Assert.isNull(SignZero_Branding__c.getOrgDefaults().Favicon_Url__c);
+  }
+
+  @IsTest
+  static void onlyAdminsCanChangeTheBranding() {
+    User sender = new User(
+      ProfileId = [SELECT Id FROM Profile WHERE Name = 'Standard User']
+      .Id,
+      LastName = 'Sender',
+      Email = 'sender@example.com',
+      Username = 'sender.' + System.currentTimeMillis() + '@signzero.test',
+      Alias = 'sender',
+      TimeZoneSidKey = 'GMT',
+      LocaleSidKey = 'en_US',
+      EmailEncodingKey = 'UTF-8',
+      LanguageLocaleKey = 'en_US'
+    );
+    System.runAs(new User(Id = UserInfo.getUserId())) {
+      insert sender;
+    }
+    System.runAs(sender) {
+      try {
+        SignZeroBrandingAdmin.removeImage(SignZeroConstants.IMAGE_LOGO);
+        Assert.fail('a user who cannot customize the application cannot change the logo');
+      } catch (AuraHandledException e) {
+        Assert.areEqual(System.Label.SZ_Image_Err_No_Access, e.getMessage());
+      }
+    }
+  }
+
+  private static void setBranding(Schema.SObjectField field, String value) {
+    SignZero_Branding__c branding = SignZero_Branding__c.getOrgDefaults();
+    branding.put(field, value);
+    upsert branding;
+  }
+
+  private static void assertImageRejected(String kind, String fileName, String data, String expected) {
+    try {
+      SignZeroBrandingAdmin.saveImage(kind, fileName, data);
+      Assert.fail('expected ' + expected);
+    } catch (AuraHandledException e) {
+      Assert.areEqual(expected, e.getMessage());
+    }
+  }
+
+  @IsTest
+  static void logoAppearsInEmailsAndOnTheCertificate() {
+    Id requestId = dispatchTwoSigners();
+    setBranding(SignZero_Branding__c.Logo_Url__c, 'https://example.com/logo.png?a=1&b="2"');
+    String html = SignZeroNotifier.logoHtml();
+    Assert.isTrue(html.contains('https://example.com/logo.png?a=1&amp;b=&quot;2&quot;'), html);
+    Assert.isTrue(html.contains('alt="Acme Corp"'), html);
+
+    Test.setCurrentPage(Page.SignZeroCertificate);
+    ApexPages.currentPage().getParameters().put('id', requestId);
+    SignZeroCertificateController ctrl = new SignZeroCertificateController();
+    Assert.isNotNull(ctrl.logoUrl);
+    Assert.isTrue(ctrl.toHtml().contains('<img src="https://example.com/logo.png'));
+
+    // Only https links are used.
+    setBranding(SignZero_Branding__c.Logo_Url__c, 'javascript:alert(1)');
+    Assert.areEqual('', SignZeroNotifier.logoHtml());
+    Assert.isNull(new SignZeroCertificateController().logoUrl);
   }
 }

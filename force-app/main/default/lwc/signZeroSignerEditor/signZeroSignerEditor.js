@@ -11,10 +11,7 @@ function signature(name, email, role, routingOrder) {
     return JSON.stringify([name ?? '', email ?? '', role ?? '', Number(routingOrder) || 0]);
 }
 
-/**
- * Flow screen component for the "SignZero: Send for Signature" flow: collects signers as a list of the
- * Apex-defined type SignZeroSigner, which the "Dispatch Document via SignZero" action accepts.
- */
+/** Flow screen component that collects signers as SignZeroSigner records for the Dispatch Document action. */
 export default class SignZeroSignerEditor extends LightningElement {
     tagExample = '{{sig:Role}}';
     rows = [this.newRow(1)];
@@ -24,7 +21,7 @@ export default class SignZeroSignerEditor extends LightningElement {
     @wire(getObjectInfo, { objectApiName: RECIPIENT_OBJECT })
     recipientInfo;
 
-    /** Roles come from the Signer Role picklist, so senders can only pick roles the templates are tagged with. */
+    /** From the Signer Role picklist, so senders can only pick roles templates are tagged with. */
     @wire(getPicklistValues, { recordTypeId: '$recipientInfo.data.defaultRecordTypeId', fieldApiName: SIGNER_ROLE_FIELD })
     wiredRoles({ data, error }) {
         if (data) {
@@ -34,7 +31,7 @@ export default class SignZeroSignerEditor extends LightningElement {
         }
     }
 
-    /** Output to the flow: List<SignZeroSigner>. Also accepts signers back when the user returns to the screen. */
+    /** Output to the flow: List<SignZeroSigner>; also restores signers when the user comes back. */
     @api
     get signers() {
         return this.rows.map(({ name, email, role, routingOrder }) => ({
@@ -48,14 +45,13 @@ export default class SignZeroSignerEditor extends LightningElement {
         if (!Array.isArray(value) || !value.length) {
             return;
         }
-        // The flow echoes every change we publish back into this setter. Rebuilding the rows then would re-render
-        // the inputs while the user types, so ignore values that match what is already on screen.
+        // The flow echoes each change back; skip values already on screen so inputs do not re-render mid-typing.
         const incoming = value.map((s) => signature(s.name, s.email, s.role, s.routingOrder));
         const current = this.rows.map((r) => signature(r.name, r.email, r.role, r.routingOrder));
         if (incoming.join('\n') === current.join('\n')) {
             return;
         }
-        // Keep each row's key so LWC updates the existing inputs instead of replacing them.
+        // Keep row keys so LWC updates the inputs instead of replacing them.
         this.rows = value.map((s, i) => ({
             ...this.newRow(s.routingOrder, s.role ?? '', s.name ?? '', s.email ?? ''),
             ...(this.rows[i] ? { key: this.rows[i].key } : {})

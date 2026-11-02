@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>SignZero Header</masterLabel>
+    <description>Site header for the SignZero signing site: your logo (SignZero Branding) and company name (SignZero Settings).</description>
+    <targets>
+        <target>lightningCommunity__Page</target>
+        <target>lightningCommunity__Default</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightningCommunity__Default">
+            <property name="logoUrl" type="String" label="Logo" editor="c/signZeroLogoEditor"
+                description="Upload your logo. It is saved in SignZero Branding and also used in emails and on the Certificate of Completion."/>
+            <property name="faviconUrl" type="String" label="Favicon" editor="c/signZeroFaviconEditor"
+                description="Upload the icon for the browser tab. Without one, the logo is used. It is saved in SignZero Branding."/>
+            <property name="showCompanyName" type="Boolean" default="true" label="Show company name"
+                description="Company name comes from SignZero Settings."/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

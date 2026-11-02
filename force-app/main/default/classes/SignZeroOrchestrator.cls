@@ -1,39 +1,58 @@
 /**
- * Flow / Apex entry point. Creates an envelope for a PDF in Salesforce Files and invites the first
- * routing order. The caller's access is enforced on the way in (create permission on envelopes, and the
- * file is read in user mode); the envelope records themselves are written in system mode because their
- * hash and status fields are read-only for people.
+ * @description Flow and Apex entry point: creates an envelope for a PDF in Salesforce Files and invites the first
+ *   routing order. Checks the caller's access, then writes in system mode because hash and status fields are read-only
+ *   for people.
  */
 public with sharing class SignZeroOrchestrator {
-  private static final Pattern EMAIL = Pattern.compile(
-    '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'
-  );
-
-  /** One envelope to send, as the invocable action's input. */
+  /**
+   * @description One envelope to send.
+   */
   public class DispatchRequest {
-    @InvocableVariable(label='Source Record Id' required=true)
+    /** @description Record the envelope is sent from; the signed files are filed on it. */
+    @InvocableVariable(
+      label='Source Record Id'
+      description='Record the envelope is sent from; the signed agreement and certificate are filed on it.'
+      required=true
+    )
     public Id sourceRecordId;
-    @InvocableVariable(label='Content Document Id (PDF)' required=true)
+    /** @description The PDF to sign, from Salesforce Files. */
+    @InvocableVariable(
+      label='Content Document Id (PDF)'
+      description='ContentDocument Id of the PDF to sign, from Salesforce Files.'
+      required=true
+    )
     public Id contentDocumentId;
+    /** @description Title signers see; defaults to the file name. */
     @InvocableVariable(
       label='Document Title'
       description='Title signers see in the portal, emails and certificate. Defaults to the file name.'
     )
     public String documentName;
-    @InvocableVariable(label='Signer Email')
+    /** @description First signer's email address. */
+    @InvocableVariable(
+      label='Signer Email'
+      description='Email address of the first signer; the signing link is sent here.'
+    )
     public String recipientEmail;
-    @InvocableVariable(label='Signer Name')
+    /** @description First signer's name. */
+    @InvocableVariable(
+      label='Signer Name'
+      description='Full name of the first signer.'
+    )
     public String recipientName;
+    /** @description First signer's role; defaults to Customer. */
     @InvocableVariable(
       label='Signer Role'
       description='A value of the SignZero Signer Role picklist; matches {{sig:Role}} tags in the PDF. Defaults to Customer.'
     )
     public String signerRole;
+    /** @description More signers; routing order defaults to 2, 3, ... in list order. */
     @InvocableVariable(
       label='Additional Signers'
       description='Optional. Routing order defaults to 2, 3, ... in list order.'
     )
     public List<SignZeroSigner> additionalSigners;
+    /** @description Other records that also get the signed files. */
     @InvocableVariable(
       label='Also File On Records'
       description='Optional. Other record Ids that should also get the executed agreement and certificate (the files are shared, not copied).'
@@ -41,14 +60,20 @@ public with sharing class SignZeroOrchestrator {
     public List<Id> additionalRecordIds;
   }
 
-  /** The envelope that was created, as the invocable action's output. */
+  /**
+   * @description The envelope that was created.
+   */
   public class DispatchResult {
-    @InvocableVariable(label='Signature Request Id')
+    /** @description The new Signature Request. */
+    @InvocableVariable(
+      label='Signature Request Id'
+      description='Id of the Signature Request (envelope) that was created.'
+    )
     public Id signatureRequestId;
   }
 
   /**
-   * Creates the envelopes and invites each one's first routing order.
+   * @description Creates the envelopes and invites each one's first routing order.
    * @param requests one per envelope
    * @return the new envelope Ids, in request order
    */
@@ -85,21 +110,20 @@ public with sharing class SignZeroOrchestrator {
             : String.join(req.additionalRecordIds, ','),
           Pre_Sign_Hash__c = hash,
           Working_Copy_Hash__c = hash,
-          Status__c = 'Out for Signature'
+          Status__c = SignZeroConstants.ENVELOPE_OUT_FOR_SIGNATURE
         )
       );
     }
     insert as system envelopes;
 
-    // The public site's guest user cannot read Salesforce Files, so signers work from an
-    // Attachment copy on the envelope. Sealing turns the final copy back into a File.
+    // The site guest user cannot read Files, so signers work from an Attachment copy; sealing makes it a File again.
     List<Attachment> workingCopies = new List<Attachment>();
     for (Integer i = 0; i < envelopes.size(); i++) {
       workingCopies.add(
         new Attachment(
           ParentId = envelopes[i].Id,
           Name = envelopes[i].Document_Name__c.left(251) + '.pdf',
-          ContentType = 'application/pdf',
+          ContentType = SignZeroConstants.PDF_CONTENT_TYPE,
           Body = versions.get(requests[i].contentDocumentId).VersionData
         )
       );
@@ -121,15 +145,15 @@ public with sharing class SignZeroOrchestrator {
             Signer_Role__c = s.role,
             Routing_Order__c = s.routingOrder,
             List_Order__c = s.routingOrder,
-            Status__c = 'Pending',
-            Auth_Method__c = 'Single-use emailed token link'
+            Status__c = SignZeroConstants.SIGNER_PENDING,
+            Auth_Method__c = SignZeroConstants.AUTH_TOKEN_LINK
           )
         );
       }
     }
     insert as system recipients;
 
-    // Invite the lowest routing order on each envelope; later orders go out as earlier ones sign.
+    // Later routing orders go out as earlier ones sign.
     Map<Id, Decimal> firstOrder = new Map<Id, Decimal>();
     for (SignZero_Recipient__c r : recipients) {
       Decimal current = firstOrder.get(r.SignZero_Request__c);
@@ -154,6 +178,11 @@ public with sharing class SignZeroOrchestrator {
     return results;
   }
 
+  /**
+   * @description Loads each PDF after checking its type and size, before pulling file bodies into the heap.
+   * @param requests the envelopes to send
+   * @return ContentDocument Id to its latest version
+   */
   private static Map<Id, ContentVersion> loadVersions(
     List<DispatchRequest> requests
   ) {
@@ -219,6 +248,11 @@ public with sharing class SignZeroOrchestrator {
     return result;
   }
 
+  /**
+   * @description Combines the first signer and the additional signers into one list.
+   * @param req the envelope to send
+   * @return every signer, with routing orders filled in
+   */
   private static List<SignZeroSigner> collectSigners(DispatchRequest req) {
     List<SignZeroSigner> signers = new List<SignZeroSigner>();
     if (String.isNotBlank(req.recipientEmail)) {
@@ -257,7 +291,7 @@ public with sharing class SignZeroOrchestrator {
           System.Label.SZ_Send_Err_Signer_Name
         );
       }
-      if (String.isBlank(s.email) || !EMAIL.matcher(s.email).matches()) {
+      if (String.isBlank(s.email) || !SignZeroConstants.EMAIL_PATTERN.matcher(s.email).matches()) {
         throw new SignZeroSettings.SignZeroException(
           String.format(
             System.Label.SZ_Send_Err_Signer_Email,
@@ -266,7 +300,7 @@ public with sharing class SignZeroOrchestrator {
         );
       }
       if (String.isBlank(s.role)) {
-        s.role = 'Customer';
+        s.role = SignZeroConstants.DEFAULT_SIGNER_ROLE;
       }
       String role = roles.get(s.role.trim().toLowerCase());
       if (role == null) {
@@ -286,7 +320,8 @@ public with sharing class SignZeroOrchestrator {
   }
 
   /**
-   * Active Signer Role values keyed by lower case, so "employer" is accepted and stored as "Employer".
+   * @description Lists the active Signer Role values keyed by lower case, so "employer" is accepted and stored as
+   *   "Employer".
    * @return lower-case value to picklist value
    */
   private static Map<String, String> activeRoles() {

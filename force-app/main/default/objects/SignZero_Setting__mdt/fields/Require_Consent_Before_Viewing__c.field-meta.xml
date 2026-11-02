@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Require_Consent_Before_Viewing__c</fullName>
+    <defaultValue>false</defaultValue>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>When on, signers must accept the electronic record disclosure before the document is shown, and it is not sent to their browser until they do. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act). When off (default), signers read the document first and accept the disclosure when they start signing.</inlineHelpText>
+    <label>Require Consent Before Viewing</label>
+    <type>Checkbox</type>
+</CustomField>

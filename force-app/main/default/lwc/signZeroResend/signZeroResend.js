@@ -5,7 +5,7 @@ import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import previewResend from '@salesforce/apex/SignZeroResendController.previewResend';
 import resend from '@salesforce/apex/SignZeroResendController.resend';
 
-/** Quick action on a Signature Request or Signature Recipient: confirm, then re-send the signing invitation. */
+/** Resend Invitation quick action: confirm, then re-send the signing link. */
 export default class SignZeroResend extends LightningElement {
     targets = [];
     errorMessage;
@@ -13,7 +13,7 @@ export default class SignZeroResend extends LightningElement {
     isSending = false;
     _recordId;
 
-    // Quick actions receive recordId after construction, so load when it arrives.
+    // recordId arrives after construction.
     @api
     get recordId() {
         return this._recordId;

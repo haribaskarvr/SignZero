@@ -19,8 +19,9 @@ Architecture diagrams live in [architecture](architecture/).
    `documentTitle` skip choosing or uploading the document, and `signers` also skips the signers screen, so only
    the sent or error screen is shown. SignZero sends the latest version of that ContentVersion's file.
 2. **Sign.** The signer opens `https://<site>/esign/?token=…`. The signing portal (`signZeroPortal`) shows the
-   document, asks for consent, finds the signer's spots from anchor tags in the PDF, and lets them type, draw or upload
-   a signature. Their signature is stamped into the PDF in the browser and submitted.
+   document, finds the signer's spots from anchor tags in the PDF, asks for consent to sign electronically when they
+   first start signing (or before showing the document, with *Require Consent Before Viewing*), and lets them type,
+   draw or upload a signature. Their signature is stamped into the PDF in the browser and submitted.
 3. **Progress.** Each submission raises a `SignZero_Event__e` platform event. `SignZeroProgressionJob` invites the next
    routing order, or, when everyone has signed, seals the envelope.
 4. **Seal.** `SignZeroSealService` hashes the executed PDF, renders the Certificate of Completion, appends it as a
@@ -80,9 +81,9 @@ resources). Object labels stay business-friendly: *Signature Request*, *Signatur
 | Objects | `SignZero_Request__c` (envelope), `SignZero_Recipient__c` (signer), `SignZero_Audit_Trail__c` (append-only ledger) |
 | Configuration | `SignZero_Setting__mdt` (record `Default`), `SignZero_Diagnostics__c` (hierarchy custom setting), global value set `SignZero_Signer_Role` |
 | Events | `SignZero_Event__e` |
-| Apex | `SignZeroOrchestrator`, `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroSettings`, `SignZeroSigner`, `SignZeroTest` |
+| Apex | `SignZeroOrchestrator`, `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
 | Triggers | `SignZeroRequestTrigger`, `SignZeroRecipientTrigger`, `SignZeroAuditTrailTrigger`, `SignZeroEventTrigger` |
-| Lightning web components | `signZeroPortal` (public signing page), `signZeroSignerEditor` (Flow screen for signers), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action) |
+| Lightning web components | `signZeroPortal` (public signing page), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
 | Visualforce | `SignZeroCertificate` (Certificate of Completion, also rendered with `Blob.toPdf`) |
 | Static resource | `signZeroPdfHost` (host page, engine, PDF.js, pdf-lib) |
 | Flow | `SignZero_Send_for_Signature`, exposed as quick action `SignZero_Send_for_Signature` on Account and Opportunity |
@@ -137,6 +138,14 @@ Then publish:
 sf community publish --name SignZero --target-org signzero
 ```
 
+Schedule the reminder job. It runs on the *Reminder Schedule* cron expression (daily at 9:00 by default) as the
+user who schedules it, so use an admin whose emails can be delivered (see the email setup check below). Running this again
+replaces the job:
+
+```bash
+echo "SignZeroReminderJob.schedule();" | sf apex run --target-org signzero
+```
+
 Run the tests:
 
 ```bash
@@ -149,17 +158,56 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 
 | Field | Purpose |
 |---|---|
-| Company Name, Logo Url | Branding on the signing page and in emails |
+| Company Name | Shown on the signing site header, in signer emails and on the Certificate of Completion |
 | Primary Color, Primary Hover Color, Accent Color | Signing page colours (`#rgb` or `#rrggbb`); blank uses the site theme |
 | Token Validity Days | How long a signing link works (default 7) |
+| Reminder First After (Days) | Days without a signature before the first automatic reminder (default record: 3). Blank or 0 turns reminders off |
+| Reminder Repeat (Days) | Days between later reminders (default record: 3). Blank sends only one |
+| Reminder Limit | Most reminders per invitation (default 3); the last is marked as the final reminder |
+| Reminder Schedule | When the reminder job runs, as a Salesforce cron expression in the scheduling user's time zone (default `0 0 9 * * ?`, daily at 9:00; `0 0 9,15 * * ?` runs at 9:00 and 15:00). An invalid expression keeps the previous schedule |
 | Max Document Size KB | Largest PDF accepted (default 2000) |
 | Allow Reassignment | Lets signers delegate to someone else (default on) |
-| Org Wide Email Address | Sender address for SignZero emails |
+| Require Consent Before Viewing | Off (default): signers read the document first and accept the electronic record disclosure when they first start signing. On: the disclosure comes first, and the document is not sent to the signer's browser until they accept it; it then loads with a progress indicator. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act) |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
 
-The portal's colours, logo and company name can also be set per page in Experience Builder; those win over the
-custom metadata.
+The portal's colours can also be set per page in Experience Builder; those win over the custom metadata.
+
+**`SignZero_Branding__c`** (Setup → Custom Settings → SignZero Branding → Manage, org default). A protected hierarchy
+custom setting: it is data, not metadata, so deployments never overwrite it.
+
+| Field | Purpose |
+|---|---|
+| Logo Url | Logo on the signing site header, in signer emails and on the Certificate of Completion. Upload it from Experience Builder (below) rather than typing the URL |
+| Favicon Url | Icon in the signing site's browser tab; blank uses the logo. Upload it from Experience Builder |
+| Org Wide Email Address | Sender address for SignZero emails. Set it: emails sent in the background (later signers, completed agreements) run as the Automated Process user and need a verified org-wide address |
+
+**Site header and logo.** The site's theme header region holds the **SignZero Header** (`signZeroHeader`): the logo
+and company name, above the signing page. In Experience Builder, select the header and use its
+**Logo** property to upload a PNG or JPG (up to 1 MB). SignZero stores it as a Salesforce File with a public link
+(`ContentDistribution`, so signers and email clients can load it without a login) and saves that link in SignZero
+Branding → *Logo URL* in the same transaction (`SignZeroBrandingAdmin`). From then on the site header, signer
+emails and the Certificate of Completion all show it. The header's **Favicon** property works the same way (PNG, JPG
+or ICO, saved in *Favicon URL*) and sets the icon in the browser tab; without a favicon, the logo is used. Uploading
+needs an admin with *Customize Application* and the SignZero User permission set; the site's guest user only reads
+the branding (`SignZeroBrandingController`). A `<style>` block in the site's head markup (Experience
+Builder → Settings → Advanced → Head Markup) and a zero Column Spacer Size in the theme remove the default spacing around
+sections and the theme's 1800px cap on section width, so the header and signing page fill the window at any size.
+
+**Automatic reminders.** `SignZeroReminderJob` runs on the *Reminder Schedule* cron expression, and
+reschedules itself when it changes. A signer whose turn it is gets a reminder once the
+configured days have passed since their last email. A reminder re-sends the link the signer already has, with its
+expiry pushed out, so links in every email keep working. (If that link cannot be recovered, the reminder carries a new
+one and says so.) Resend Invitation, by contrast, always issues a new link and closes the old one. Reminders are
+logged in the audit trail and counted on the signer (*Reminders Sent*). A manual resend starts the schedule again.
+When no more reminders are due and the link expires unsigned, the sender gets a bell notification (once; *Expiry
+Notified At*) suggesting Resend Invitation.
+
+**Email setup check.** Salesforce accepts an email from an unverified sender and drops it later without an error,
+so SignZero checks for the usual causes: deliverability off, the org-wide address missing or unverified, or (with no
+org-wide address) the sender's own email unverified. Send for Signature shows a warning screen before sending when
+invitations would not arrive, and the SignZero Home page shows the current status (`SignZeroEmailCheck`,
+`signZeroEmailCheck`).
 
 **`SignZero_Diagnostics__c`** (Setup → Custom Settings): **Performance Logs** writes the signing page's step timings
 to the browser console. Set it org-wide, or only on the site guest profile to diagnose signers.
@@ -167,20 +215,33 @@ to the browser console. Set it org-wide, or only on the site guest profile to di
 **`SignZero_Signer_Role`** (Setup → Picklist Value Sets): the signer roles. Each value's API name must match the
 `{{sig:Role}}` tags in your PDFs (matching ignores case).
 
-**Custom Labels** (category *SignZero*): reword or translate everything signers read.
+**Custom Labels** (category *SignZero*): reword or translate everything signers read, including the invitation,
+reminder, recall and completion emails, and the notices senders get. Labels that take values use `{0}`, `{1}`…
+placeholders; write apostrophes as ’ rather than ', because Apex drops a plain apostrophe from text with placeholders.
 
 ## Security model
 
 - The site guest user has no object access. It can call only `SignZeroGatewayController`, which checks the signer's
-  256-bit token (stored only as a SHA-256 hash, with an expiry) before doing anything, and raise `SignZero_Event__e`.
+  256-bit token before doing anything, and raise `SignZero_Event__e`. Links are checked against the token's SHA-256
+  hash, with an expiry.
   Once the signer has signed, the same link opens a read-only copy; it can no longer change anything.
+- So that reminders can re-send the same link, the token is also stored encrypted (AES-256, `Token_Encrypted__c`,
+  on no layout or permission set) with a key SignZero generates in the protected custom setting
+  `SignZero_Encryption__c`. The encrypted copy is cleared as soon as the link can no longer be reminded (signed,
+  declined, delegated, recalled). Reading the database alone is not enough to build a link; reading it together with
+  the key is, so treat the key like a password. Once SignZero is installed as a managed package, the protected
+  setting is readable only by SignZero's code; in an unpackaged deploy, admins can read it. Deleting the key makes
+  later reminders send new links.
 - `SignZeroRecordGuard` blocks manual edits and deletes of evidence fields (hashes, tokens, timestamps, signer
   status) from the UI, API and Data Loader; only SignZero's own processing may change them. Envelope status cannot be
   edited by hand either: to cancel an envelope, use **Recall Envelope**, so the links are closed, the signers told and
   the recall recorded.
 - `SignZero_Audit_Trail__c` is append-only. Each event's hash covers its fields and the previous event's hash, so a
   gap or edit breaks the chain.
-- An uploaded signature image stays in the browser; it reaches Salesforce only inside the signed PDF.
+- An uploaded signature image stays in the browser; it reaches Salesforce only inside the signed PDF. Before use,
+  the portal keeps just the ink (`signZeroPortal/signatureInk.js`), as PDF readers do: the paper is estimated with a
+  morphological closing, so shadows and uneven light in a photo become transparent while pen strokes keep soft
+  edges, and the result is cropped to the signature (distant specks are left out). Photos and scans up to 10 MB work.
 - API version 68 runs Apex in user mode by default; SignZero uses `WITH SYSTEM_MODE` and `as system` only where the
   token check or internal processing requires it.
 

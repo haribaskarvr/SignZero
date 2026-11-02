@@ -94,7 +94,7 @@
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>Hello {0}. Before you review and sign, please read this disclosure.</shortDescription>
-        <value>Hello {0}. Before you review and sign, please read this disclosure.</value>
+        <value>Hello {0}. Before you sign, please read this disclosure.</value>
     </labels>
     <labels>
         <fullName>SZ_Consent_Body</fullName>
@@ -245,16 +245,16 @@
         <categories>SignZero</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>PNG or JPG, up to 1 MB. A white background is made transparent.</shortDescription>
-        <value>PNG or JPG, up to 1 MB. A white background is made transparent.</value>
+        <shortDescription>Upload help: format, size and that only the ink is kept</shortDescription>
+        <value>PNG or JPG, up to 10 MB. A photo or scan of your signature on plain paper works: only the ink is kept.</value>
     </labels>
     <labels>
         <fullName>SZ_Upload_Invalid</fullName>
         <categories>SignZero</categories>
         <language>en_US</language>
         <protected>false</protected>
-        <shortDescription>Please choose a PNG or JPG image of up to 1 MB.</shortDescription>
-        <value>Please choose a PNG or JPG image of up to 1 MB.</value>
+        <shortDescription>Upload error: wrong file type or too large</shortDescription>
+        <value>Please choose a PNG or JPG image of up to 10 MB.</value>
     </labels>
     <labels>
         <fullName>SZ_Page_Of</fullName>
@@ -991,5 +991,517 @@
         <protected>false</protected>
         <shortDescription>Send for Signature flow: shown when the record has no PDF</shortDescription>
         <value>There is no PDF on this record yet. Upload the document to send, then select Next.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: card title</shortDescription>
+        <value>Email Setup</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Loading</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: shown while checking</shortDescription>
+        <value>Checking email setup…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Ok</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: no problems found</shortDescription>
+        <value>Email setup looks good: SignZero emails can be delivered.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: introduction above the problems</shortDescription>
+        <value>SignZero emails may not be delivered. Salesforce accepts them without an error and drops them later, so fix these first.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Deliverability</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: deliverability off or daily limit used up</shortDescription>
+        <value>Email deliverability is off or today’s email limit is used up. In Setup → Deliverability, set Access level to All email.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Owea_Missing</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: configured org-wide address does not exist ({0} = address)</shortDescription>
+        <value>The org-wide email address {0} in SignZero Branding does not exist. Add it in Setup → Organization-Wide Addresses, or correct it in Setup → Custom Settings → SignZero Branding.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_Owea_Unverified</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: org-wide address not verified ({0} = address)</shortDescription>
+        <value>The org-wide email address {0} is not verified yet. Open the verification email Salesforce sent to that address and click the link.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_User_Unverified</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: sender&apos;s email not verified ({0} = address)</shortDescription>
+        <value>Your email address {0} is not verified, so invitations you send will not be delivered. Verify it under your profile picture → Settings → Personal Information, or set an org-wide email address in SignZero Branding.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Email_Check_No_Owea</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email setup check: no org-wide address set</shortDescription>
+        <value>No org-wide email address is set in SignZero Branding. Invitations come from each sender’s own address, and emails SignZero sends in the background (to later signers and with completed agreements) may not be delivered. Add a verified address in Setup → Organization-Wide Addresses and enter it in Setup → Custom Settings → SignZero Branding.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Greeting</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email greeting ({0} = signer name)</shortDescription>
+        <value>Hello {0},</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Open_Link</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Email: signing link text</shortDescription>
+        <value>Open your secure signing session</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Invite_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Invitation subject ({0} = document)</shortDescription>
+        <value>Action Required: Review &amp; Sign {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Invite_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Invitation text ({0} = company, {1} = document)</shortDescription>
+        <value>{0} has sent you {1} to review and sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Invite_Expiry</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Invitation footer ({0} = days)</shortDescription>
+        <value>This link is personal to you and expires in {0} days. Do not forward it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Reminder_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reminder subject ({0} = document)</shortDescription>
+        <value>Reminder: Review &amp; Sign {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Final_Reminder_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Last reminder subject ({0} = document)</shortDescription>
+        <value>Final reminder: Review &amp; Sign {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Reminder_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reminder text ({0} = company, {1} = document)</shortDescription>
+        <value>{0} is still waiting for you to review and sign {1}.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Reminder_Expiry</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reminder footer ({0} = expiry date)</shortDescription>
+        <value>This link is personal to you and expires on {0}. Do not forward it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Final_Reminder_Note</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Last reminder: added to the footer</shortDescription>
+        <value>This is the last reminder you will get.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Recall_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall email subject ({0} = document)</shortDescription>
+        <value>Recalled: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Recall_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall email text ({0} = company, {1} = document)</shortDescription>
+        <value>{0} has recalled {1}. The signing request is cancelled and any signing link you received for it no longer works.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Reason</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reason line in emails and notices ({0} = reason)</shortDescription>
+        <value>Reason: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_No_Action</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Recall email closing line</shortDescription>
+        <value>No further action is needed from you.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Completed_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Completion email subject ({0} = document)</shortDescription>
+        <value>Completed: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Completed_Intro</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Completion email text ({0} = document, {1} = envelope)</shortDescription>
+        <value>All parties have signed “{0}” (envelope {1}).</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_Completed_Attached</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Completion email: attachments line</shortDescription>
+        <value>The executed agreement and its Certificate of Completion are attached for your records.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_File_Executed_With_Certificate</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>File name: agreement and certificate ({0} = document)</shortDescription>
+        <value>{0} - Executed with Certificate.pdf</value>
+    </labels>
+    <labels>
+        <fullName>SZ_File_Executed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>File name: executed agreement ({0} = document)</shortDescription>
+        <value>{0} - Executed.pdf</value>
+    </labels>
+    <labels>
+        <fullName>SZ_File_Certificate</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>File name: certificate ({0} = document)</shortDescription>
+        <value>{0} - Certificate of Completion.pdf</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Owner_Subject</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender email subject ({0} = envelope, {1} = outcome, {2} = document)</shortDescription>
+        <value>SignZero {0} {1}: {2}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Title</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell title ({0} = document, {1} = what happened)</shortDescription>
+        <value>{0}: {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Body</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell text ({0} = envelope, {1} = details)</shortDescription>
+        <value>{0} - {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Outcome_Completed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice outcome</shortDescription>
+        <value>Completed</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Outcome_Declined</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice outcome</shortDescription>
+        <value>Declined</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Outcome_Recalled</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice outcome</shortDescription>
+        <value>Recalled</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Outcome_Sealing_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice outcome</shortDescription>
+        <value>Sealing failed</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Owner_Completed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice: envelope completed</shortDescription>
+        <value>All parties have signed. The executed agreement and Certificate of Completion are attached to the record.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Owner_Declined</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice: declined ({0} = signer)</shortDescription>
+        <value>{0} declined to sign.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Owner_A_Signer</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice: used when the signer is unknown</shortDescription>
+        <value>A signer</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Owner_Recalled</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Sender notice: recalled ({0} = who recalled)</shortDescription>
+        <value>Recalled by {0}.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Invite_Failed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell: invitation could not be sent</shortDescription>
+        <value>invitation not sent</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Reassigned</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell: delegation ({0} = signer, {1} = new signer)</shortDescription>
+        <value>{0} reassigned to {1}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Signed</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell: a signer signed ({0} = signer)</shortDescription>
+        <value>{0} signed</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Signed_Progress</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell: progress ({0} = signed, {1} = total)</shortDescription>
+        <value>{0} of {1} signers have signed.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Link_Expired</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell title: a link expired unsigned</shortDescription>
+        <value>signing link expired</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Bell_Link_Expired_Body</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Bell: link expired ({0} = signer)</shortDescription>
+        <value>{0}’s signing link expired before they signed. Use Resend Invitation to send a new link.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Mail_New_Link_Note</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reminder footer when it carries a new link</shortDescription>
+        <value>This is a new link: links in earlier emails no longer work.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Upload_No_Ink</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Upload error: no signature found in the image</shortDescription>
+        <value>We couldn’t find a signature in this image. Try a photo of a dark signature on plain paper, in good light.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Consent_Not_Now</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Disclosure: close it and keep reading the document</shortDescription>
+        <value>Not now</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Upload_Processing</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Upload: shown while the image is cleaned up</shortDescription>
+        <value>Preparing your signature…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Logo_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo editor: help text</shortDescription>
+        <value>PNG or JPG, up to 1 MB. Shown on the signing site, in signer emails and on the Certificate of Completion.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Logo_Remove</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo editor: button that removes the logo</shortDescription>
+        <value>Remove logo</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Image_Saving</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo or favicon editor: shown while saving</shortDescription>
+        <value>Saving…</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Logo_Saved</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo editor: shown after a save</shortDescription>
+        <value>Logo saved. The signing site, signer emails and the certificate now use it.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Logo_None</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo editor: shown when there is no logo</shortDescription>
+        <value>No logo yet.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Logo_Err_Type</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo editor: wrong file type</shortDescription>
+        <value>Choose a PNG or JPG image.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Image_Err_Size</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo or favicon editor: file too large</shortDescription>
+        <value>The image must be 1 MB or smaller.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Image_Err_Save</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo or favicon editor: save failed ({0} = reason)</shortDescription>
+        <value>The image could not be saved: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Favicon_Help</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Favicon editor: help text</shortDescription>
+        <value>PNG, JPG or ICO, up to 1 MB; square images look best. Shown in the browser tab on the signing site. Without one, the logo is used.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Favicon_Remove</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Favicon editor: button that removes the favicon</shortDescription>
+        <value>Remove favicon</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Favicon_Saved</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Favicon editor: shown after a save</shortDescription>
+        <value>Favicon saved. The signing site now uses it in the browser tab.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Favicon_None</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Favicon editor: shown when there is no favicon</shortDescription>
+        <value>No favicon: the logo is used in the browser tab.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Favicon_Err_Type</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Favicon editor: wrong file type</shortDescription>
+        <value>Choose a PNG, JPG or ICO image.</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Image_Err_No_Access</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Logo or favicon editor: user cannot change branding</shortDescription>
+        <value>Only an admin who can customize the application can change the logo or favicon.</value>
     </labels>
 </CustomLabels>

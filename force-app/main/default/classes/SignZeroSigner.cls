@@ -1,22 +1,29 @@
 /**
- * Apex-defined type so Flow can pass extra signers to the "Dispatch Document via SignZero" action.
+ * @description Apex-defined type for one signer, so Flow can pass extra signers to the "Dispatch Document via SignZero"
+ *   action.
  */
 public inherited sharing class SignZeroSigner {
+  /** @description Signer's full name. */
   @AuraEnabled
   public String name;
+  /** @description Address the signing link is sent to. */
   @AuraEnabled
   public String email;
+  /** @description A Signer Role value; blank means Customer. */
   @AuraEnabled
   public String role;
+  /** @description When they sign; signers with the same order sign in parallel. */
   @AuraEnabled
   public Integer routingOrder;
 
-  /** Empty signer, filled in by Flow. */
+  /**
+   * @description Creates an empty signer, for Flow to fill in.
+   */
   public SignZeroSigner() {
   }
 
   /**
-   * A signer built in Apex.
+   * @description Creates a signer in Apex.
    * @param name signer's full name
    * @param email address the signing link is sent to
    * @param role a Signer Role value; blank means Customer
