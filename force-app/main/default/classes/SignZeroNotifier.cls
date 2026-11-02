@@ -103,6 +103,49 @@ public without sharing class SignZeroNotifier {
   }
 
   /**
+   * @description Emails a signer the one-time passcode that opens their document.
+   * @param inv the signer and document (the signing URL is not used)
+   * @param code the passcode
+   */
+  public static void sendPasscode(Invitation inv, String code) {
+    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+    mail.setToAddresses(new List<String>{ inv.email });
+    mail.setSubject(
+      fill(System.Label.SZ_Mail_Passcode_Subject, new List<Object>{ inv.documentName })
+    );
+    String note = fill(
+      System.Label.SZ_Mail_Passcode_Note,
+      new List<Object>{ SignZeroConstants.PASSCODE_VALID_MINUTES }
+    );
+    mail.setHtmlBody(
+      logoHtml() +
+        paragraph(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        paragraph(System.Label.SZ_Mail_Passcode_Intro, new List<Object>{ strong(inv.documentName) }) +
+        '<p style="font-size:28px;font-weight:bold;letter-spacing:6px">' +
+        code +
+        '</p>' +
+        '<p style="color:#666;font-size:12px">' +
+        note.escapeHtml4() +
+        '</p>'
+    );
+    mail.setPlainTextBody(
+      fill(System.Label.SZ_Mail_Greeting, new List<Object>{ inv.recipientName }) +
+        '\n\n' +
+        fill(System.Label.SZ_Mail_Passcode_Intro, new List<Object>{ '"' + inv.documentName + '"' }) +
+        '\n\n' +
+        code +
+        '\n\n' +
+        note
+    );
+    mail.setSaveAsActivity(false);
+    Id fromAddressId = orgWideAddressId();
+    if (fromAddressId != null) {
+      mail.setOrgWideEmailAddressId(fromAddressId);
+    }
+    send(new List<Messaging.SingleEmailMessage>{ mail });
+  }
+
+  /**
    * @description Tells signers who were sent an envelope that the sender recalled it. Throws if the email cannot be
    *   sent, so the caller can record that the signers were not told.
    * @param recipients one per signer to tell (the signing URL is not used)

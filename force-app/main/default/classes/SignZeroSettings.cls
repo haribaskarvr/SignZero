@@ -45,6 +45,18 @@ public inherited sharing class SignZeroSettings {
   }
 
   /**
+   * @description How signers of an envelope sent now are authenticated, kept on each recipient so changing the
+   *   setting later does not affect envelopes already out.
+   * @return an Auth_Method__c value: the link and a one-time passcode with Require One-Time Passcode on, otherwise
+   *   the link alone
+   */
+  public static String signerAuthMethod() {
+    return get().Require_Passcode__c == true
+      ? SignZeroConstants.AUTH_LINK_AND_PASSCODE
+      : SignZeroConstants.AUTH_TOKEN_LINK;
+  }
+
+  /**
    * @description Whether the signing page logs step timings.
    * @return the SignZero_Diagnostics__c Performance Logs value for the running user
    */

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Require_Passcode__c</fullName>
+    <defaultValue>false</defaultValue>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>When on, signers must enter a one-time code emailed to them before the document is shown, and the Certificate of Completion records it as their authentication. Applies to envelopes sent after it is switched on.</inlineHelpText>
+    <label>Require One-Time Passcode</label>
+    <type>Checkbox</type>
+</CustomField>

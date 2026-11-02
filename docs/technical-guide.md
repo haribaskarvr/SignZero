@@ -24,6 +24,8 @@ Architecture diagrams live in [architecture](architecture/).
    document, finds the signer's spots (placed by the sender, or from anchor tags in the PDF), asks for consent to sign electronically when they
    first start signing (or before showing the document, with *Require Consent Before Viewing*), and lets them type,
    draw or upload a signature. Their signature is stamped into the PDF in the browser and submitted.
+   With *Require One-Time Passcode*, the signer first asks for a code emailed to them and enters it; nothing about
+   the document reaches their browser before that (see Security model).
 3. **Progress.** Each submission raises a `SignZero_Event__e` platform event. `SignZeroProgressionJob` invites the next
    routing order, or, when everyone has signed, seals the envelope.
 4. **Seal.** `SignZeroSealService` hashes the executed PDF, renders the Certificate of Completion, appends it as a
@@ -200,6 +202,7 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 | Allow Reassignment | Lets signers delegate to someone else (default on) |
 | Allow Signer Placement | A signer with no tag and no place from the sender drags their signature onto the document (default on). Off: they sign at the bottom right of the last page |
 | Require Consent Before Viewing | Off (default): signers read the document first and accept the electronic record disclosure when they first start signing. On: the disclosure comes first, and the document is not sent to the signer's browser until they accept it; it then loads with a progress indicator. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act) |
+| Require One-Time Passcode | Off (default). On: signers must enter a 6-digit code emailed to them before the document is shown, including when they reopen a signed copy. Applies to envelopes sent after it is switched on, and to anyone they delegate to; the Certificate of Completion records it as their authentication |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
 
@@ -264,6 +267,14 @@ placeholders; write apostrophes as ’ rather than ', because Apex drops a plain
   the key is, so treat the key like a password. Once SignZero is installed as a managed package, the protected
   setting is readable only by SignZero's code; in an unpackaged deploy, admins can read it. Deleting the key makes
   later reminders send new links.
+- **One-time passcode** (with *Require One-Time Passcode*). The choice is kept on each signer's *Auth Method* when the
+  envelope is sent. The signing page asks for a code with a button rather than on load, so email scanners that open
+  links do not trigger codes. `sendPasscode` emails a 6-digit code that works once, for 10 minutes; only an HMAC of
+  it, keyed with the `SignZero_Encryption__c` key and tied to the signer's current link, is stored. Five wrong
+  entries end the code; a link can ask for 10 codes, one a minute, and a resend from the sender starts again.
+  `verifyPasscode` answers a correct code with a random 256-bit session key, kept in the browser tab's
+  `sessionStorage` and sent with every later call; only its SHA-256 hash is stored, and it works for 12 hours. Every
+  request, sent code, wrong entry and verification is written to the audit trail.
 - `SignZeroRecordGuard` blocks manual edits and deletes of evidence fields (hashes, tokens, timestamps, signer
   status) from the UI, API and Data Loader; only SignZero's own processing may change them. Envelope status cannot be
   edited by hand either: to cancel an envelope, use **Recall Envelope**, so the links are closed, the signers told and

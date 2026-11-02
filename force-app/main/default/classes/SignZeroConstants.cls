@@ -51,6 +51,9 @@ public inherited sharing class SignZeroConstants {
   public static final String EVENT_REASSIGNED = 'Reassigned';
   public static final String EVENT_COMPLETED = 'Completed';
   public static final String EVENT_RECALLED = 'Recalled';
+  public static final String EVENT_PASSCODE_SENT = 'Passcode Sent';
+  public static final String EVENT_PASSCODE_VERIFIED = 'Passcode Verified';
+  public static final String EVENT_PASSCODE_FAILED = 'Passcode Failed';
 
   // ---------- SignZero_Event__e: Action__c ----------
   public static final String ACTION_SIGNED = 'SIGNED';
@@ -70,8 +73,21 @@ public inherited sharing class SignZeroConstants {
   /** @description Added to the method when the signer chose where their signature goes. */
   public static final String PLACED_BY_SIGNER = ', placed by the signer';
 
-  /** @description Auth_Method__c value: how every signer is authenticated. */
+  /** @description Auth_Method__c value: the signing link alone. */
   public static final String AUTH_TOKEN_LINK = 'Single-use emailed token link';
+  /** @description Auth_Method__c value: the signing link and a one-time passcode emailed on request. */
+  public static final String AUTH_LINK_AND_PASSCODE = 'Single-use emailed token link and one-time emailed passcode';
+
+  // ---------- One-time passcodes ----------
+  public static final Integer PASSCODE_DIGITS = 6;
+  public static final Integer PASSCODE_VALID_MINUTES = 10;
+  /** @description Wrong entries allowed per code; after that the signer needs a new code. */
+  public static final Integer PASSCODE_MAX_ATTEMPTS = 5;
+  /** @description Codes one signing link can ask for; a resend from the sender starts again. */
+  public static final Integer PASSCODE_MAX_SENDS = 10;
+  public static final Integer PASSCODE_RESEND_SECONDS = 60;
+  /** @description How long a correct code keeps the signer verified in that browser tab. */
+  public static final Integer PASSCODE_SESSION_HOURS = 12;
 
   // ---------- Names of related metadata ----------
   /** @description The SignZero_Setting__mdt record SignZero reads. */
@@ -164,7 +180,14 @@ public inherited sharing class SignZeroConstants {
     'Viewed_At__c',
     'Consented_At__c',
     'Signed_At__c',
-    'Decline_Reason__c'
+    'Decline_Reason__c',
+    'Passcode_Hash__c',
+    'Passcode_Expires_At__c',
+    'Passcode_Attempts__c',
+    'Passcode_Sends__c',
+    'Passcode_Sent_At__c',
+    'Passcode_Session_Hash__c',
+    'Passcode_Verified_At__c'
   };
   /** @description Who signs: these fields can only change before the invitation goes out. */
   public static final List<String> SIGNER_IDENTITY_FIELDS = new List<String>{

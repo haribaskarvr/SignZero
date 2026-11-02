@@ -62,4 +62,8 @@
         <field>Require_Consent_Before_Viewing__c</field>
         <value xsi:type="xsd:boolean">false</value>
     </values>
+    <values>
+        <field>Require_Passcode__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
 </CustomMetadata>

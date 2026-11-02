@@ -88,15 +88,17 @@ private class SignZeroTest {
   private static Map<String, Object> signAs(String rawToken, String pdfBase64) {
     SignZeroGatewayController.initializeSession(
       rawToken,
-      'TestAgent/1.0'
+      'TestAgent/1.0',
+      null
     );
-    SignZeroGatewayController.recordConsent(rawToken, 'TestAgent/1.0');
+    SignZeroGatewayController.recordConsent(rawToken, 'TestAgent/1.0', null);
     return SignZeroGatewayController.submitExecutedDocument(
       rawToken,
       pdfBase64,
       EncodingUtil.base64Encode(Blob.valueOf('png')),
       'Typed',
       'TestAgent/1.0',
+      null,
       null
     );
   }
@@ -230,7 +232,8 @@ private class SignZeroTest {
     // Reopening the link after signing shows the completed document read-only...
     Map<String, Object> view = SignZeroGatewayController.initializeSession(
       TOKEN_B,
-      'x'
+      'x',
+      null
     );
     Assert.areEqual(true, view.get('readOnly'));
     Assert.areEqual('Completed', view.get('envelopeStatus'));
@@ -251,6 +254,7 @@ private class SignZeroTest {
         null,
         'Typed',
         'x',
+        null,
         null
       );
       Assert.fail('expected the used token to be rejected for signing');
@@ -277,7 +281,8 @@ private class SignZeroTest {
     System.runAs(guests[0]) {
       Map<String, Object> session = SignZeroGatewayController.initializeSession(
         TOKEN_A,
-        'GuestAgent'
+        'GuestAgent',
+        null
       );
       Assert.isNotNull(
         session.get('pdfBase64'),
@@ -308,7 +313,8 @@ private class SignZeroTest {
 
     Map<String, Object> session = SignZeroGatewayController.initializeSession(
       TOKEN_A,
-      'TestAgent'
+      'TestAgent',
+      null
     );
 
     Assert.areEqual('Casey Customer', session.get('recipientName'));
@@ -341,7 +347,8 @@ private class SignZeroTest {
 
     Map<String, Object> before = SignZeroGatewayController.initializeSession(
       TOKEN_A,
-      'TestAgent'
+      'TestAgent',
+      null
     );
     Assert.areEqual(true, before.get('consentBeforeViewing'));
     Assert.isNull(before.get('pdfBase64'), 'nothing of the document before consent');
@@ -355,10 +362,11 @@ private class SignZeroTest {
       ]
     );
 
-    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent');
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent', null);
     Map<String, Object> after = SignZeroGatewayController.initializeSession(
       TOKEN_A,
-      'TestAgent'
+      'TestAgent',
+      null
     );
     Assert.areEqual(false, after.get('consentBeforeViewing'));
     Assert.isNotNull(after.get('pdfBase64'));
@@ -375,7 +383,213 @@ private class SignZeroTest {
     Assert.isFalse(SignZeroSettings.requireConsentBeforeViewing());
   }
 
+  // The envelope is sent before the test switches the setting on, so the signer is switched over directly.
+  private static void requirePasscode(Id recipientId) {
+    SignZeroRecordGuard.processUpdate = true;
+    update as system new SignZero_Recipient__c(
+      Id = recipientId,
+      Auth_Method__c = SignZeroConstants.AUTH_LINK_AND_PASSCODE
+    );
+  }
 
+  private static String emailedPasscode() {
+    Messaging.SingleEmailMessage mail = SignZeroNotifier.sentInTest[
+      SignZeroNotifier.sentInTest.size() - 1
+    ];
+    Matcher m = Pattern.compile('\\b(\\d{6})\\b').matcher(mail.getPlainTextBody());
+    Assert.isTrue(m.find(), 'the email carries the code');
+    return m.group(1);
+  }
+
+  @IsTest
+  static void passcodeWithholdsTheDocumentUntilTheSignerEntersTheEmailedCode() {
+    Id requestId = dispatchTwoSigners();
+    Assert.areEqual(SignZeroConstants.AUTH_TOKEN_LINK, SignZeroSettings.signerAuthMethod());
+    SignZeroSettings.cached.Require_Passcode__c = true;
+    Assert.areEqual(SignZeroConstants.AUTH_LINK_AND_PASSCODE, SignZeroSettings.signerAuthMethod());
+    Id signerId = recipient(requestId, 1).Id;
+    plantToken(signerId, TOKEN_A);
+    requirePasscode(signerId);
+
+    Map<String, Object> challenge = SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null);
+    Assert.areEqual(true, challenge.get('passcodeRequired'));
+    Assert.areEqual(false, challenge.get('passcodeSent'));
+    Assert.areEqual('c***@example.com', challenge.get('maskedEmail'));
+    Assert.isFalse(challenge.containsKey('pdfBase64'), 'nothing of the document before the code');
+    Assert.isFalse(challenge.containsKey('documentName'));
+    try {
+      SignZeroGatewayController.recordConsent(TOKEN_A, 'x', null);
+      Assert.fail('consent needs a verified signer');
+    } catch (AuraHandledException e) {
+      Assert.areEqual(System.Label.SZ_Err_Passcode_Required, e.getMessage());
+    }
+
+    SignZeroNotifier.sentInTest.clear();
+    Map<String, Object> sent = SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+    Assert.areEqual('c***@example.com', sent.get('maskedEmail'));
+    Assert.areEqual(1, SignZeroNotifier.sentInTest.size());
+    Assert.areEqual(
+      new List<String>{ 'casey@example.com' },
+      SignZeroNotifier.sentInTest[0].getToAddresses()
+    );
+    String code = emailedPasscode();
+    SignZero_Recipient__c stored = [
+      SELECT Passcode_Hash__c, Passcode_Sends__c
+      FROM SignZero_Recipient__c
+      WHERE Id = :signerId
+      WITH SYSTEM_MODE
+    ];
+    Assert.areNotEqual(code, stored.Passcode_Hash__c, 'only a hash is kept');
+    Assert.areEqual(1, stored.Passcode_Sends__c);
+    try {
+      SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+      Assert.fail('a second code within a minute is refused');
+    } catch (AuraHandledException e) {
+      Assert.areEqual(System.Label.SZ_Err_Passcode_Wait, e.getMessage());
+    }
+    Assert.areEqual(
+      true,
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null).get('passcodeSent'),
+      'after a reload the page asks for the code already sent'
+    );
+
+    Map<String, Object> wrong = SignZeroGatewayController.verifyPasscode(
+      TOKEN_A,
+      code == '000000' ? '111111' : '000000',
+      'x'
+    );
+    Assert.areEqual(false, wrong.get('verified'));
+    Assert.areEqual(SignZeroConstants.PASSCODE_MAX_ATTEMPTS - 1, wrong.get('triesLeft'));
+
+    Map<String, Object> right = SignZeroGatewayController.verifyPasscode(TOKEN_A, ' ' + code + ' ', 'x');
+    Assert.areEqual(true, right.get('verified'));
+    String passcodeSession = (String) right.get('passcodeSession');
+    try {
+      SignZeroGatewayController.verifyPasscode(TOKEN_A, code, 'x');
+      Assert.fail('a code works once');
+    } catch (AuraHandledException e) {
+      Assert.areEqual(System.Label.SZ_Err_Passcode_Expired, e.getMessage());
+    }
+
+    Map<String, Object> session = SignZeroGatewayController.initializeSession(TOKEN_A, 'x', passcodeSession);
+    Assert.isNotNull(session.get('pdfBase64'));
+    Assert.isNull(session.get('passcodeRequired'));
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'x', passcodeSession);
+    SignZeroGatewayController.submitExecutedDocument(
+      TOKEN_A,
+      SIGNED_PDF,
+      null,
+      'Typed',
+      'x',
+      null,
+      passcodeSession
+    );
+    Assert.areEqual('Signed', recipient(requestId, 1).Status__c);
+
+    Map<String, Integer> events = new Map<String, Integer>();
+    for (AggregateResult row : [
+      SELECT Event_Type__c type, COUNT(Id) n
+      FROM SignZero_Audit_Trail__c
+      WHERE SignZero_Recipient__c = :signerId AND Event_Type__c LIKE 'Passcode%'
+      GROUP BY Event_Type__c
+    ]) {
+      events.put((String) row.get('type'), (Integer) row.get('n'));
+    }
+    Assert.areEqual(
+      new Map<String, Integer>{ 'Passcode Sent' => 1, 'Passcode Failed' => 1, 'Passcode Verified' => 1 },
+      events
+    );
+    // The signed copy reopens read-only, still behind the passcode.
+    Assert.areEqual(
+      true,
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null).get('passcodeRequired')
+    );
+    Assert.areEqual(
+      true,
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', passcodeSession).get('readOnly')
+    );
+  }
+
+  @IsTest
+  static void passcodeLimitsGuessingAndCodes() {
+    Id requestId = dispatchTwoSigners();
+    Id signerId = recipient(requestId, 1).Id;
+    plantToken(signerId, TOKEN_A);
+    requirePasscode(signerId);
+
+    SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+    String wrongCode = emailedPasscode() == '000000' ? '111111' : '000000';
+    Map<String, Object> last;
+    for (Integer i = 0; i < SignZeroConstants.PASSCODE_MAX_ATTEMPTS; i++) {
+      last = SignZeroGatewayController.verifyPasscode(TOKEN_A, wrongCode, 'x');
+    }
+    Assert.areEqual(0, last.get('triesLeft'));
+    try {
+      SignZeroGatewayController.verifyPasscode(TOKEN_A, wrongCode, 'x');
+      Assert.fail('the code stops working after too many wrong entries');
+    } catch (AuraHandledException e) {
+      Assert.areEqual(System.Label.SZ_Err_Passcode_Expired, e.getMessage());
+    }
+
+    SignZeroRecordGuard.processUpdate = true;
+    update as system new SignZero_Recipient__c(
+      Id = signerId,
+      Passcode_Sent_At__c = null,
+      Passcode_Sends__c = SignZeroConstants.PASSCODE_MAX_SENDS
+    );
+    try {
+      SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+      Assert.fail('one link can ask for only so many codes');
+    } catch (AuraHandledException e) {
+      Assert.areEqual(System.Label.SZ_Err_Passcode_Limit, e.getMessage());
+    }
+
+    // A verified session runs out.
+    update as system new SignZero_Recipient__c(Id = signerId, Passcode_Sends__c = 0);
+    SignZeroGatewayController.sendPasscode(TOKEN_A, 'x');
+    String passcodeSession = (String) SignZeroGatewayController.verifyPasscode(TOKEN_A, emailedPasscode(), 'x')
+      .get('passcodeSession');
+    SignZeroRecordGuard.processUpdate = true;
+    update as system new SignZero_Recipient__c(
+      Id = signerId,
+      Passcode_Verified_At__c = Datetime.now().addHours(-SignZeroConstants.PASSCODE_SESSION_HOURS - 1)
+    );
+    Assert.areEqual(
+      true,
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', passcodeSession).get('passcodeRequired')
+    );
+
+    // A delegate must enter a passcode too.
+    update as system new SignZero_Recipient__c(Id = signerId, Passcode_Verified_At__c = Datetime.now());
+    SignZeroGatewayController.reassign(TOKEN_A, 'Dana Delegate', 'dana@example.com', null, 'x', passcodeSession);
+    Assert.areEqual(
+      SignZeroConstants.AUTH_LINK_AND_PASSCODE,
+      [SELECT Auth_Method__c FROM SignZero_Recipient__c WHERE Delegated_From__c = :signerId]
+      .Auth_Method__c
+    );
+  }
+
+  @IsTest
+  static void newLinkStartsThePasscodeLimitsAgain() {
+    Id requestId = dispatchTwoSigners();
+    Id signerId = recipient(requestId, 1).Id;
+    SignZeroRecordGuard.processUpdate = true;
+    update as system new SignZero_Recipient__c(
+      Id = signerId,
+      Passcode_Sends__c = SignZeroConstants.PASSCODE_MAX_SENDS,
+      Passcode_Session_Hash__c = 'f'.repeat(64)
+    );
+    SignZeroInvitationService.send(new Set<Id>{ signerId });
+    SignZero_Recipient__c r = [
+      SELECT Passcode_Sends__c, Passcode_Session_Hash__c
+      FROM SignZero_Recipient__c
+      WHERE Id = :signerId
+      WITH SYSTEM_MODE
+    ];
+    Assert.areEqual(0, r.Passcode_Sends__c);
+    Assert.isNull(r.Passcode_Session_Hash__c);
+    Assert.areEqual('', SignZeroGatewayController.maskEmail('not-an-email'));
+  }
 
   @IsTest
   static void gatewayRejectsBadRequests() {
@@ -387,7 +601,7 @@ private class SignZeroTest {
     assertGatewayError('c'.repeat(64), null, 'invalid');
     assertGatewayError(TOKEN_A, SIGNED_PDF, 'disclosure');
 
-    SignZeroGatewayController.recordConsent(TOKEN_A, 'x');
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'x', null);
     try {
       SignZeroGatewayController.submitExecutedDocument(
         TOKEN_A,
@@ -395,6 +609,7 @@ private class SignZeroTest {
         null,
         'Stamp',
         'x',
+        null,
         null
       );
       Assert.fail('an unknown signature method must be rejected');
@@ -429,7 +644,7 @@ private class SignZeroTest {
   ) {
     try {
       if (pdf == null) {
-        SignZeroGatewayController.initializeSession(token, 'x');
+        SignZeroGatewayController.initializeSession(token, 'x', null);
       } else {
         SignZeroGatewayController.submitExecutedDocument(
           token,
@@ -437,6 +652,7 @@ private class SignZeroTest {
           null,
           'Drawn',
           'x',
+          null,
           null
         );
       }
@@ -455,7 +671,8 @@ private class SignZeroTest {
     SignZeroGatewayController.declineToSign(
       TOKEN_A,
       'Wrong pricing',
-      'x'
+      'x',
+      null
     );
     new SignZeroProgressionJob(new Set<Id>(), new Set<Id>{ requestId })
       .execute(null);
@@ -685,7 +902,8 @@ private class SignZeroTest {
     plantToken(recipient(requestId, 1).Id, TOKEN_A);
     List<SignZeroFieldLayout.Placement> own = (List<SignZeroFieldLayout.Placement>) SignZeroGatewayController.initializeSession(
         TOKEN_A,
-        'TestAgent'
+        'TestAgent',
+        null
       )
       .get('placements');
     Assert.areEqual(2, own.size(), 'a signer gets only their own role\'s places');
@@ -694,7 +912,7 @@ private class SignZeroTest {
     Id tagsOnly = dispatchWithLayout('  ');
     plantToken(recipient(tagsOnly, 1).Id, TOKEN_B);
     Assert.isNull(
-      SignZeroGatewayController.initializeSession(TOKEN_B, 'TestAgent')
+      SignZeroGatewayController.initializeSession(TOKEN_B, 'TestAgent', null)
         .get('placements'),
       'without a layout the signing page uses the tags'
     );
@@ -726,10 +944,11 @@ private class SignZeroTest {
     plantToken(recipient(requestId, 1).Id, TOKEN_A);
     Map<String, Object> session = SignZeroGatewayController.initializeSession(
       TOKEN_A,
-      'TestAgent'
+      'TestAgent',
+      null
     );
     Assert.areEqual(true, session.get('allowSignerPlacement'));
-    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent');
+    SignZeroGatewayController.recordConsent(TOKEN_A, 'TestAgent', null);
 
     SignZeroSettings.cached.Allow_Signer_Placement__c = false;
     try {
@@ -739,7 +958,8 @@ private class SignZeroTest {
         null,
         'Drawn',
         'TestAgent',
-        '[{"page":1,"x":76.1,"y":607.35}]'
+        '[{"page":1,"x":76.1,"y":607.35}]',
+        null
       );
       Assert.fail('signer placement is off');
     } catch (AuraHandledException e) {
@@ -753,7 +973,8 @@ private class SignZeroTest {
       null,
       'Drawn',
       'TestAgent',
-      '[{"page":1,"x":76.1,"y":607.35},{"page":0,"x":300,"y":80}]'
+      '[{"page":1,"x":76.1,"y":607.35},{"page":0,"x":300,"y":80}]',
+      null
     );
     Assert.areEqual(
       'Drawn on device, placed by the signer',
@@ -874,7 +1095,7 @@ private class SignZeroTest {
     Id requestId = dispatchTwoSigners();
     SignZero_Recipient__c first = recipient(requestId, 1);
     plantToken(first.Id, TOKEN_A);
-    SignZeroGatewayController.initializeSession(TOKEN_A, 'x');
+    SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null);
 
     SignZeroResendController.resend(first.Id);
 
@@ -884,7 +1105,7 @@ private class SignZeroTest {
       'a resend keeps the signer progress'
     );
     try {
-      SignZeroGatewayController.initializeSession(TOKEN_A, 'x');
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null);
       Assert.fail('the old link must stop working');
     } catch (AuraHandledException e) {
       Assert.isTrue(e.getMessage().contains('invalid'));
@@ -905,7 +1126,8 @@ private class SignZeroTest {
       'Dana Delegate',
       'dana@example.com',
       'On leave',
-      'x'
+      'x',
+      null
     );
     new SignZeroProgressionJob(new Set<Id>{ requestId }, new Set<Id>())
       .execute(null);
@@ -955,7 +1177,7 @@ private class SignZeroTest {
       ]
     );
     try {
-      SignZeroGatewayController.initializeSession(TOKEN_A, 'x');
+      SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null);
       Assert.fail('the original link must stop working');
     } catch (AuraHandledException e) {
       Assert.isTrue(e.getMessage().contains('invalid'));
@@ -975,7 +1197,7 @@ private class SignZeroTest {
     String email
   ) {
     try {
-      SignZeroGatewayController.reassign(token, name, email, null, 'x');
+      SignZeroGatewayController.reassign(token, name, email, null, 'x', null);
       Assert.fail('expected reassignment to be rejected');
     } catch (AuraHandledException e) {
       Assert.isTrue(e.getMessage().startsWith('Please enter'), e.getMessage());
@@ -1065,7 +1287,7 @@ private class SignZeroTest {
     Id requestId = dispatchTwoSigners();
     SignZero_Recipient__c first = recipient(requestId, 1);
     plantToken(first.Id, TOKEN_A);
-    SignZeroGatewayController.initializeSession(TOKEN_A, 'x');
+    SignZeroGatewayController.initializeSession(TOKEN_A, 'x', null);
 
     List<SignZeroResendController.Target> preview = SignZeroRecallController.previewRecall(
       requestId
@@ -1129,7 +1351,7 @@ private class SignZeroTest {
     assertGatewayError(TOKEN_A, null, System.Label.SZ_Err_Recalled);
     assertGatewayError(TOKEN_A, SIGNED_PDF, System.Label.SZ_Err_Recalled);
     try {
-      SignZeroGatewayController.declineToSign(TOKEN_A, 'late', 'x');
+      SignZeroGatewayController.declineToSign(TOKEN_A, 'late', 'x', null);
       Assert.fail('a recalled envelope cannot be declined');
     } catch (AuraHandledException e) {
       Assert.areEqual(System.Label.SZ_Err_Recalled, e.getMessage());

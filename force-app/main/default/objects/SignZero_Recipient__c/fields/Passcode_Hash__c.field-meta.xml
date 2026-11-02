@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Passcode_Hash__c</fullName>
+    <description>Keyed hash of the one-time passcode last emailed to the signer. The code itself is never stored. Set by SignZero.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Keyed hash of the one-time passcode last emailed to the signer. The code itself is never stored. Set by SignZero.</inlineHelpText>
+    <label>Passcode Hash</label>
+    <length>64</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

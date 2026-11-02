@@ -110,6 +110,16 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>SignZero_Recipient__c.Passcode_Sent_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>SignZero_Recipient__c.Passcode_Verified_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>SignZero_Recipient__c.Reassign_Reason__c</field>
         <readable>true</readable>
     </fieldPermissions>

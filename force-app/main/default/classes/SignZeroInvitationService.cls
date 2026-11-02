@@ -84,6 +84,13 @@ public without sharing class SignZeroInvitationService {
         rawToken = EncodingUtil.convertToHex(Crypto.generateAesKey(256));
         r.Token_Hash__c = hashToken(rawToken);
         r.Token_Encrypted__c = SignZeroTokenVault.encrypt(rawToken);
+        // A new link needs a new passcode, and may ask for codes again.
+        r.Passcode_Hash__c = null;
+        r.Passcode_Expires_At__c = null;
+        r.Passcode_Attempts__c = 0;
+        r.Passcode_Sends__c = 0;
+        r.Passcode_Sent_At__c = null;
+        r.Passcode_Session_Hash__c = null;
       }
       r.Token_Expires_At__c = expiry;
       // A resend keeps the signer's progress; only a first invitation moves them to Sent.

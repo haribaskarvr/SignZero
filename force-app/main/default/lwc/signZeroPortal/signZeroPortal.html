@@ -7,7 +7,18 @@
                 <p class="slds-text-body_small slds-text-color_weak">{envelopeNumber}</p>
             </div>
             <template lwc:if={isSigning}>
-                <div class="slds-no-flex">
+                <!-- Phones: the actions go in a menu so the document name keeps its room. -->
+                <lightning-button-menu class="doc-actions-menu slds-m-left_small" icon-name="utility:threedots_vertical"
+                    alternative-text={labels.moreActions} menu-alignment="right" onselect={handleDocAction}>
+                    <template lwc:if={adoptedSignature}>
+                        <lightning-menu-item value="changeSignature" label={labels.changeSignature}></lightning-menu-item>
+                    </template>
+                    <template lwc:if={allowReassign}>
+                        <lightning-menu-item value="reassign" label={labels.reassignAction}></lightning-menu-item>
+                    </template>
+                    <lightning-menu-item value="decline" label={labels.decline}></lightning-menu-item>
+                </lightning-button-menu>
+                <div class="doc-actions-buttons slds-no-flex">
                     <template lwc:if={adoptedSignature}>
                         <lightning-button variant="brand-outline" class="slds-m-left_small" label={labels.changeSignature}
                             onclick={handleChangeSignature}></lightning-button>
@@ -36,6 +47,33 @@
                 <lightning-icon icon-name="utility:error" variant="error" size="large" alternative-text={errorTitle}></lightning-icon>
                 <h2 class="slds-text-heading_medium slds-m-vertical_small">{errorTitle}</h2>
                 <p>{errorMessage}</p>
+            </div>
+        </template>
+
+        <template lwc:if={isPasscode}>
+            <div class="status-panel slds-text-align_center slds-p-around_large">
+                <lightning-icon icon-name="utility:lock" size="large" alternative-text={labels.passcodeTitle}></lightning-icon>
+                <h2 class="slds-text-heading_medium slds-m-vertical_small">{labels.passcodeTitle}</h2>
+                <template lwc:if={passcode.sent}>
+                    <p>{passcodeSentMessage}</p>
+                    <div class="passcode-form slds-m-top_medium">
+                        <lightning-input class="passcode-input" label={labels.passcodeLabel} value={passcode.code}
+                            autocomplete="one-time-code" onchange={handlePasscodeInput}
+                            onkeyup={handlePasscodeKeyup}></lightning-input>
+                        <lightning-button class="slds-m-top_small" variant="brand" label={labels.passcodeVerify}
+                            onclick={handleVerifyPasscode} disabled={verifyDisabled} stretch></lightning-button>
+                    </div>
+                    <lightning-button class="slds-m-top_small" variant="base" label={resendLabel}
+                        onclick={handleSendPasscode} disabled={resendDisabled}></lightning-button>
+                </template>
+                <template lwc:else>
+                    <p>{passcodeIntroMessage}</p>
+                    <lightning-button class="slds-m-top_medium" variant="brand" label={labels.passcodeSend}
+                        onclick={handleSendPasscode} disabled={resendDisabled}></lightning-button>
+                </template>
+                <template lwc:if={passcode.error}>
+                    <p class="slds-text-color_error slds-m-top_small" role="alert">{passcode.error}</p>
+                </template>
             </div>
         </template>
 
@@ -138,23 +176,22 @@
                         <p>{labels.consentBody}</p>
                         <p>{labels.consentPaperOption}</p>
                     </div>
-                    <div class="slds-modal__footer slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-                        <div>
-                            <!-- The wrong recipient can pass it on without agreeing to anything. -->
-                            <template lwc:if={allowReassign}>
-                                <lightning-button variant="base" label={labels.reassignAction}
-                                    onclick={openReassignModal}></lightning-button>
-                            </template>
-                        </div>
-                        <div>
+                    <!-- Accept comes first so phones, which stack the buttons, show it on top. -->
+                    <div class="slds-modal__footer consent-footer">
+                        <div class="consent-actions">
+                            <lightning-button variant="brand" label={labels.consentAccept}
+                                onclick={handleAcceptConsent} disabled={isWorking} stretch></lightning-button>
+                            <lightning-button variant="destructive" label={labels.decline} onclick={openDeclineModal} stretch></lightning-button>
                             <template lwc:if={canPostponeConsent}>
-                                <lightning-button label={labels.consentNotNow} onclick={closeConsentModal}></lightning-button>
+                                <lightning-button variant="brand-outline" label={labels.consentNotNow} onclick={closeConsentModal}
+                                    stretch></lightning-button>
                             </template>
-                            <lightning-button class="slds-m-left_x-small" label={labels.decline}
-                                onclick={openDeclineModal}></lightning-button>
-                            <lightning-button class="slds-m-left_x-small" variant="brand" label={labels.consentAccept}
-                                onclick={handleAcceptConsent} disabled={isWorking}></lightning-button>
                         </div>
+                        <!-- The wrong recipient can pass it on without agreeing to anything. -->
+                        <template lwc:if={allowReassign}>
+                            <lightning-button class="consent-reassign" variant="base" label={labels.reassignAction}
+                                onclick={openReassignModal}></lightning-button>
+                        </template>
                     </div>
                 </div>
             </section>
@@ -310,17 +347,6 @@
 
         <template lwc:if={pdfEngineUrl}>
             <iframe class="pdf-engine" src={pdfEngineUrl} title="SignZero PDF engine" tabindex="-1" aria-hidden="true"></iframe>
-        </template>
-
-        <template lwc:if={toastMessage}>
-            <div class="slds-notify_container">
-                <div class={toastClass} role="alert">
-                    <lightning-icon class="slds-m-right_small" icon-name={toastIcon} variant="inverse" size="small"></lightning-icon>
-                    <div class="slds-notify__content">
-                        <h2 class="slds-text-heading_small">{toastMessage}</h2>
-                    </div>
-                </div>
-            </div>
         </template>
     </div>
 </template>

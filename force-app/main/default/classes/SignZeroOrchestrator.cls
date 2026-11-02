@@ -149,6 +149,7 @@ public with sharing class SignZeroOrchestrator {
     }
     update as system envelopes;
 
+    String authMethod = SignZeroSettings.signerAuthMethod();
     List<SignZero_Recipient__c> recipients = new List<SignZero_Recipient__c>();
     for (Integer i = 0; i < envelopes.size(); i++) {
       for (SignZeroSigner s : signersPerEnvelope[i]) {
@@ -161,7 +162,7 @@ public with sharing class SignZeroOrchestrator {
             Routing_Order__c = s.routingOrder,
             List_Order__c = s.routingOrder,
             Status__c = SignZeroConstants.SIGNER_PENDING,
-            Auth_Method__c = SignZeroConstants.AUTH_TOKEN_LINK
+            Auth_Method__c = authMethod
           )
         );
       }
