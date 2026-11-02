@@ -232,7 +232,7 @@ public inherited sharing class SignZeroCertificateController {
       '<div class="header">' +
       (logoUrl == null
         ? ''
-        : '<img src="' + h(logoUrl) + '" style="max-height:40px;max-width:200px" alt="" />') +
+        : '<img src="' + h(logoUrl) + '" style="height:40px" alt="" />') +
       '<div class="title">Certificate of Completion</div>',
       '<p class="sub">Envelope ' +
       h(sigRequest.Name) +

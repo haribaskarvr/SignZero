@@ -70,6 +70,10 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
+                <field>Allow_Signer_Placement__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
                 <field>Reminder_Repeat_Days__c</field>
             </layoutItems>
             <layoutItems>

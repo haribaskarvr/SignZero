@@ -102,10 +102,17 @@ public without sharing class SignZeroGatewayController {
       // The last signer also clears leftover anchor tags from the document text.
       'isLastSigner' => othersToSign == 0,
       'allowReassign' => !readOnly && SignZeroSettings.allowReassignment(),
+      // A signer with no tag and no place from the sender places their own signature.
+      'allowSignerPlacement' => SignZeroSettings.allowSignerPlacement(),
       'performanceLogs' => SignZeroSettings.performanceLogs(),
       'pdfHostVersion' => SignZeroSettings.pdfHostVersion(),
       'consentBeforeViewing' => consentFirst,
       'pdfBase64' => pdf == null ? null : EncodingUtil.base64Encode(pdf),
+      // Places chosen by the sender replace the signer's tags; null when the envelope has none.
+      'placements' => SignZeroFieldLayout.forRole(
+        recipient.SignZero_Request__r.Field_Layout__c,
+        recipient.Signer_Role__c
+      ),
       'branding' => SignZeroSettings.branding()
     };
   }
@@ -145,6 +152,8 @@ public without sharing class SignZeroGatewayController {
    *   only inside the signed PDF
    * @param signatureMethod Typed, Drawn or Uploaded
    * @param userAgent the signer's browser, for the audit trail
+   * @param signerPlacements where the signer chose to put their signature, as JSON [{page, x, y}] in PDF points;
+   *   blank when they signed at tags or places set by the sender
    * @return isFinalSigner: true when this signature completes the envelope
    */
   @AuraEnabled
@@ -153,7 +162,8 @@ public without sharing class SignZeroGatewayController {
     String executedPdfBase64,
     String signatureImageBase64,
     String signatureMethod,
-    String userAgent
+    String userAgent,
+    String signerPlacements
   ) {
     SignZero_Recipient__c recipient = openRecipient(rawToken);
     if (recipient.Consented_At__c == null) {
@@ -162,6 +172,10 @@ public without sharing class SignZeroGatewayController {
     String adoption = SignZeroConstants.METHOD_DESCRIPTIONS.get(signatureMethod);
     if (adoption == null) {
       throw fail(System.Label.SZ_Generic_Error);
+    }
+    String placedAt = describePlacements(signerPlacements);
+    if (placedAt != null) {
+      adoption += SignZeroConstants.PLACED_BY_SIGNER;
     }
     // "%PDF-" in base64.
     if (
@@ -236,7 +250,8 @@ public without sharing class SignZeroGatewayController {
       'Signed as ' +
       recipient.Signer_Role__c +
       '; signature ' +
-      adoption.toLowerCase();
+      adoption.toLowerCase() +
+      (placedAt == null ? '' : '; signer chose the places: ' + placedAt);
     SignZeroAuditService.logOne(e);
 
     publish(envelope.Id, SignZeroConstants.ACTION_SIGNED, recipient.Id);
@@ -370,6 +385,44 @@ public without sharing class SignZeroGatewayController {
    * @param rawToken the token from the signing link
    * @return the recipient, with their envelope; throws when the link cannot sign
    */
+  /**
+   * @description Checks the places a signer chose for their signature and describes them for the audit trail.
+   * @param signerPlacements JSON [{page, x, y}] from the signing page; blank when the signer did not choose
+   * @return e.g. "page 2 at (76, 607)", or null when the signer did not choose
+   */
+  private static String describePlacements(String signerPlacements) {
+    if (String.isBlank(signerPlacements)) {
+      return null;
+    }
+    List<SignZeroFieldLayout.Placement> placements;
+    try {
+      placements = (List<SignZeroFieldLayout.Placement>) JSON.deserialize(
+        signerPlacements,
+        List<SignZeroFieldLayout.Placement>.class
+      );
+    } catch (JSONException e) {
+      throw fail(System.Label.SZ_Generic_Error);
+    }
+    if (
+      !SignZeroSettings.allowSignerPlacement() ||
+      placements == null ||
+      placements.isEmpty() ||
+      placements.size() > SignZeroConstants.MAX_FIELD_PLACEMENTS
+    ) {
+      throw fail(System.Label.SZ_Generic_Error);
+    }
+    List<String> described = new List<String>();
+    for (SignZeroFieldLayout.Placement p : placements) {
+      if (p == null || p.page == null || p.page < 0 || p.x == null || p.y == null) {
+        throw fail(System.Label.SZ_Generic_Error);
+      }
+      described.add(
+        'page ' + (p.page + 1) + ' at (' + p.x.round() + ', ' + p.y.round() + ')'
+      );
+    }
+    return String.join(described, ', ').left(1000);
+  }
+
   private static SignZero_Recipient__c openRecipient(String rawToken) {
     SignZero_Recipient__c r = findRecipient(rawToken);
     if (!isSignable(r)) {
@@ -418,7 +471,8 @@ public without sharing class SignZeroGatewayController {
         SignZero_Request__r.Status__c,
         SignZero_Request__r.Document_Name__c,
         SignZero_Request__r.Working_Copy_Id__c,
-        SignZero_Request__r.Working_Copy_Hash__c
+        SignZero_Request__r.Working_Copy_Hash__c,
+        SignZero_Request__r.Field_Layout__c
       FROM SignZero_Recipient__c
       WHERE Token_Hash__c = :SignZeroInvitationService.hashToken(rawToken)
       WITH SYSTEM_MODE

@@ -1,0 +1,80 @@
+<template>
+    <div class="placer-root">
+        <div class="slds-text-heading_small slds-m-bottom_x-small">{labels.title}</div>
+        <p class="slds-text-color_weak slds-m-bottom_small">{hint}</p>
+        <template lwc:if={isLoading}>
+            <div class="spinner-holder slds-is-relative slds-m-around_large">
+                <lightning-spinner alternative-text={labels.loadingDocument} size="medium"></lightning-spinner>
+            </div>
+        </template>
+        <template lwc:if={errorMessage}>
+            <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
+                <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                <h2>{errorMessage}</h2>
+            </div>
+        </template>
+        <template lwc:if={showViewer}>
+            <div class="slds-grid slds-wrap slds-gutters_x-small">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4">
+                    <template lwc:if={hasRoles}>
+                        <ul aria-label={labels.signers}>
+                            <template for:each={roleItems} for:item="item">
+                                <li key={item.role}>
+                                    <div class={item.className} style={item.style} role="button" tabindex="0"
+                                        aria-pressed={item.pressed} data-role={item.role}
+                                        onpointerdown={handleRolePointerDown} onkeydown={handleRoleKeyDown}>
+                                        <div class="slds-text-title_bold role-name">{item.role}</div>
+                                        <div class="slds-truncate" title={item.names}>{item.names}</div>
+                                        <div class="slds-text-body_small slds-text-color_weak">{item.countText}</div>
+                                    </div>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p class="slds-text-color_weak">{labels.noSigners}</p>
+                    </template>
+                    <lightning-button label={labels.reset} icon-name="utility:undo" onclick={handleReset}
+                        disabled={canNotReset} stretch class="slds-m-top_x-small"></lightning-button>
+                </div>
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-4">
+                    <div class={viewerClass} onkeydown={handleViewerKeyDown}>
+                        <template for:each={pageItems} for:item="page">
+                            <div key={page.key} class="page-block">
+                                <div class="slds-text-body_small slds-text-color_weak slds-m-bottom_xx-small">{page.label}</div>
+                                <div class="page" style={page.style} data-index={page.index} onclick={handlePageClick}>
+                                    <template lwc:if={page.imageUrl}>
+                                        <img class="page-image" src={page.imageUrl} alt={page.alt} draggable="false" />
+                                    </template>
+                                    <template lwc:else>
+                                        <lightning-spinner alternative-text={labels.drawingPage} size="small"></lightning-spinner>
+                                    </template>
+                                    <template for:each={page.boxes} for:item="box">
+                                        <div key={box.key} class={box.className} style={box.style} tabindex="0" role="button"
+                                            aria-label={box.ariaLabel} data-key={box.key}
+                                            onpointerdown={handleFieldPointerDown} onkeydown={handleFieldKeyDown}
+                                            onfocus={handleFieldFocus} onclick={stopEvent}>
+                                            <span class="field-label slds-truncate">{box.role}</span>
+                                            <lightning-button-icon icon-name="utility:close" variant="bare-inverse" size="x-small"
+                                                alternative-text={labels.remove} title={labels.remove} data-key={box.key}
+                                                onpointerdown={stopEvent} onclick={handleRemoveClick}
+                                                class="field-remove"></lightning-button-icon>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <template lwc:if={ghost}>
+            <div class="field-box ghost" style={ghost.style}>
+                <span class="field-label slds-truncate">{ghost.role}</span>
+            </div>
+        </template>
+        <template lwc:if={engineUrl}>
+            <iframe class="pdf-engine" src={engineUrl} title="SignZero PDF engine" tabindex="-1" aria-hidden="true"></iframe>
+        </template>
+    </div>
+</template>

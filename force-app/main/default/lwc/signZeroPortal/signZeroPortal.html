@@ -101,10 +101,27 @@
             <div class="pdf-scroll-viewport">
                 <div class="pages-wrapper" lwc:dom="manual"></div>
             </div>
+            <template lwc:if={placingHint}>
+                <div class="placing-hint slds-notify slds-notify_toast slds-theme_info" role="status">
+                    <h2 class="slds-text-heading_small">{placingHint}</h2>
+                </div>
+            </template>
+            <template lwc:if={openingDocument}>
+                <div class="opening-document slds-text-align_center" role="status">
+                    <div class="spinner-holder slds-is-relative">
+                        <lightning-spinner variant="brand" size="medium" alternative-text={labels.loadingDocument}></lightning-spinner>
+                    </div>
+                    <p class="slds-m-top_medium">{labels.loadingDocument}</p>
+                </div>
+            </template>
         </main>
 
         <template lwc:if={showGuide}>
             <div class="guided-nav-container">
+                <template lwc:if={showAddAnother}>
+                    <lightning-button variant="neutral" class="guided-nav-button slds-m-right_small" label={labels.placeAnother}
+                        onclick={handleAddAnotherSignature}></lightning-button>
+                </template>
                 <lightning-button variant="brand" class="guided-nav-button" label={guideButtonLabel}
                     onclick={handleJumpToNextField} disabled={isSubmitting}></lightning-button>
             </div>

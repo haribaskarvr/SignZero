@@ -85,6 +85,16 @@
     min-width: 100%;
 }
 
+/* Over the empty viewer while the document is opened, before the page outlines with their own spinners exist. */
+.opening-document {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .page-container {
     position: relative;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -142,9 +152,57 @@
 .signature-hotspot.signed {
     border: 1px solid transparent;
     background: transparent;
-    /* Bottom-left of the box, on the tag's line, like the stamp. */
+    /* Centred at the bottom of the box, on the tag's line, like the stamp. */
     align-items: flex-end;
-    justify-content: flex-start;
+    justify-content: center;
+}
+
+/* A signature the signer placed: dragged to move, with a remove button on hover or focus. */
+.signature-hotspot.own-place {
+    cursor: move;
+    touch-action: none;
+}
+
+.signature-hotspot.own-place.signed:hover,
+.signature-hotspot.own-place.signed:focus-visible {
+    border: 1px dashed var(--brand-primary);
+}
+
+.own-place-remove {
+    position: absolute;
+    top: -0.6rem;
+    right: -0.6rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--brand-primary);
+    color: var(--brand-contrast);
+    font-size: 0.9rem;
+    line-height: 1.25rem;
+    padding: 0;
+    cursor: pointer;
+    display: none;
+}
+
+.signature-hotspot.own-place:hover .own-place-remove,
+.signature-hotspot.own-place:focus-within .own-place-remove {
+    display: block;
+}
+
+/* While the signer places their signature, the next click on a page puts it there. */
+.document-container.placing .page-container {
+    cursor: crosshair;
+}
+
+.placing-hint {
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    min-width: auto;
+    pointer-events: none;
 }
 
 .signature-hotspot:hover,
@@ -171,6 +229,8 @@
     bottom: 28px;
     right: 28px;
     z-index: 100;
+    display: flex;
+    align-items: center;
 }
 
 /* A larger, pill-shaped lightning-button floating over the document. */

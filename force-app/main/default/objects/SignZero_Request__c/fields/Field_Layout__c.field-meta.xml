@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Field_Layout__c</fullName>
+    <description>Where each signer role signs, as placed by the sender in Send for Signature: JSON list of {role, page, x, y, height} in PDF points (page from 0; x, y = bottom left of the signature area). Blank: signers sign at their {{sig:Role}} tags. The PDF itself is not changed.</description>
+    <inlineHelpText>Signature places chosen by the sender when sending. Blank when the document&apos;s anchor tags were used as they are.</inlineHelpText>
+    <label>Field Layout</label>
+    <length>131072</length>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

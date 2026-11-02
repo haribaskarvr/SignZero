@@ -7,6 +7,7 @@ import recordConsent from '@salesforce/apex/SignZeroGatewayController.recordCons
 import submitExecutedDocument from '@salesforce/apex/SignZeroGatewayController.submitExecutedDocument';
 import declineToSign from '@salesforce/apex/SignZeroGatewayController.declineToSign';
 import { extractInk } from './signatureInk';
+import { SIG_WIDTH, SIG_HEIGHT, findAnchorTags } from 'c/signZeroAnchorTags';
 import reassign from '@salesforce/apex/SignZeroGatewayController.reassign';
 
 // Text is in Custom Labels (category SignZero) so admins can reword and translate it.
@@ -77,6 +78,12 @@ import reassignedTitle from '@salesforce/label/c.SZ_Reassigned_Title';
 import reassignedMessage from '@salesforce/label/c.SZ_Reassigned_Message';
 import recalledTitle from '@salesforce/label/c.SZ_Recalled_Title';
 import errRecalled from '@salesforce/label/c.SZ_Err_Recalled';
+import placeOwnNotice from '@salesforce/label/c.SZ_Place_Own_Notice';
+import placeStart from '@salesforce/label/c.SZ_Place_Start';
+import placeHint from '@salesforce/label/c.SZ_Place_Hint';
+import placeCancel from '@salesforce/label/c.SZ_Place_Cancel';
+import placeAnother from '@salesforce/label/c.SZ_Place_Another';
+import placeRemove from '@salesforce/label/c.SZ_Place_Remove';
 
 const LABELS = {
     loadingSession,
@@ -145,7 +152,13 @@ const LABELS = {
     reassignedTitle,
     reassignedMessage,
     recalledTitle,
-    errRecalled
+    errRecalled,
+    placeOwnNotice,
+    placeStart,
+    placeHint,
+    placeCancel,
+    placeAnother,
+    placeRemove
 };
 
 /** Fills {0}, {1}, ... placeholders in a label. */
@@ -164,7 +177,9 @@ const ENGINE_REQUEST_TIMEOUT_MS = { open: 30000, renderPage: 10000, stamp: 20000
 
 const INK = '#0b1f4d';
 const SIGNATURE_IMAGE_WIDTH = 640;
-const SIGNATURE_IMAGE_HEIGHT = 200;
+// Line height of a typed signature, in font sizes above and below the baseline: the letters fill about half of it.
+const TYPED_ASCENT = 1.0;
+const TYPED_DESCENT = 0.4;
 // Phone photos are large; the image never leaves the browser.
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Uploaded images are processed at most this wide.
@@ -181,41 +196,16 @@ const TYPED_STYLES = [
     { family: "Georgia, 'Times New Roman', serif", italic: true }
 ];
 
-// Signature size in PDF points; the "Signed electronically by" caption goes just under it.
-const SIG_WIDTH = 150;
-const SIG_HEIGHT = 30;
 // A signature fills its area's width and may rise above it up to this many times its height.
 // Keep in step with signZeroPdfHost/engine.js.
-const SIG_OVERFLOW = 2;
-const MIN_SIG_HEIGHT = 16;
-const MAX_SIG_HEIGHT = 80;
-
-/**
- * Where a signature goes relative to its tag:
- *   {{sig:Customer}}          on the tag's line
- *   {{sig:Customer|below}}    hanging below the tag, e.g. into an empty table cell
- *   {{sig:Customer|h=40}}     height in points (16-80); options combine: {{sig:Customer|below|h=40}}
- */
-function placementFor(tagText, tagX, tagY, fontHeight) {
-    const options = (tagText.match(/\|([^}]*)\}\}$/) || [null, ''])[1].toLowerCase().split('|').map((o) => o.trim());
-    const heightOption = options.find((o) => /^h\s*=\s*\d+$/.test(o));
-    const height = heightOption
-        ? Math.min(MAX_SIG_HEIGHT, Math.max(MIN_SIG_HEIGHT, Number(heightOption.split('=')[1])))
-        : SIG_HEIGHT;
-    const imageY = options.includes('below')
-        ? tagY + fontHeight * 0.8 - height // top of the signature level with the top of the tag
-        : tagY - fontHeight * 0.2; // bottom of the signature on the tag's baseline
-    return { pdfX: tagX, pdfY: imageY, height };
-}
+const SIG_OVERFLOW = 1.25;
+// Pointer travel that turns a press on a placed signature into a drag.
+const DRAG_THRESHOLD_PX = 4;
 const VIEWER_PADDING = 16;
 const CSS_PX_PER_PT = 96 / 72; // 100% zoom
 const ZOOM_STEP = 1.25;
 const MIN_ZOOM = 0.25 * CSS_PX_PER_PT;
 const MAX_ZOOM = 4 * CSS_PX_PER_PT;
-
-function escapeRegExp(value) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 function base64ToBytes(base64) {
     const binary = atob(base64);
@@ -360,6 +350,12 @@ export default class SignZeroPortal extends LightningElement {
     showReassignModal = false;
     reassignTo = { name: '', email: '', reason: '' };
     tagRects = []; // every anchor tag, any role: { pageIndex, rect }
+    placements; // places chosen by the sender, used instead of this signer's tags; null when there are none
+    allowSignerPlacement = false;
+    signerPlaces = false; // no tag and no place from the sender: the signer puts their signature where they sign
+    placingSignature = false; // the next click on a page places the adopted signature
+    placeAfterAdopt = false;
+    ownPlaceCount = 0;
     signatureMode = 'type'; // type | draw | upload
     typedName = '';
     typedStyle = 0;
@@ -368,6 +364,7 @@ export default class SignZeroPortal extends LightningElement {
     isProcessingUpload = false;
     adoptedMethod; // Drawn | Typed | Uploaded
     started = false;
+    openingDocument = false; // the engine is reading the document; no page outlines to show yet
 
     @wire(CurrentPageReference)
     setPageRef(pageRef) {
@@ -489,7 +486,10 @@ export default class SignZeroPortal extends LightningElement {
         if (this.isViewing) {
             return 'document-container';
         }
-        return this.isSigning ? 'document-container' : 'document-container hidden';
+        if (!this.isSigning) {
+            return 'document-container hidden';
+        }
+        return this.placingSignature ? 'document-container placing' : 'document-container';
     }
 
     get remainingSpots() {
@@ -499,6 +499,12 @@ export default class SignZeroPortal extends LightningElement {
     get guideButtonLabel() {
         if (this.isSubmitting) {
             return LABELS.submitting;
+        }
+        if (this.signerPlaces) {
+            if (this.placingSignature) {
+                return LABELS.placeCancel;
+            }
+            return this.signatureLocations.length ? LABELS.guideFinish : LABELS.placeStart;
         }
         const remaining = this.remainingSpots;
         if (remaining === 0) {
@@ -579,8 +585,10 @@ export default class SignZeroPortal extends LightningElement {
         this.signedAt = res.signedAt;
         this.isLastSigner = res.isLastSigner === true;
         this.allowReassign = res.allowReassign === true;
+        this.allowSignerPlacement = res.allowSignerPlacement === true;
         performanceLogs = res.performanceLogs === true;
         this.pdfBytes = res.pdfBase64 ? base64ToBytes(res.pdfBase64) : null;
+        this.placements = Array.isArray(res.placements) ? res.placements : null;
         this.sessionBranding = res.branding || {};
     }
 
@@ -640,7 +648,12 @@ export default class SignZeroPortal extends LightningElement {
     async renderAllPages() {
         if (!this.openedDoc) {
             const openStarted = performance.now();
-            this.openedDoc = await this.runPdfEngine('open', { pdfBytes: this.pdfBytes.slice() });
+            this.openingDocument = true;
+            try {
+                this.openedDoc = await this.runPdfEngine('open', { pdfBytes: this.pdfBytes.slice() });
+            } finally {
+                this.openingDocument = false;
+            }
             timing('document opened', openStarted);
             this.findSignatureSpots();
         }
@@ -672,40 +685,47 @@ export default class SignZeroPortal extends LightningElement {
                 this.applySignature(spot);
             }
         });
+        if (!this.pagesClickBound) {
+            this.pagesClickBound = true;
+            container.addEventListener('click', (event) => this.handlePagesClick(event));
+        }
         this.watchWidth();
         this.drawPages(scales);
     }
 
-    /** Remembers every anchor tag (stamping covers them); this signer's become signing spots. */
+    /**
+     * Remembers every anchor tag (stamping covers them). This signer's tags become signing spots, or, when the sender
+     * placed the signatures, those places do.
+     */
     findSignatureSpots() {
         const { pages, tagItems } = this.openedDoc;
-        const anyTag = /\{\{\s*sig\s*:[^}]*\}\}/gi;
-        const ownTag = new RegExp(`^\\{\\{\\s*sig\\s*:\\s*${escapeRegExp(this.signerRole)}\\s*(?:\\|[^}]*)?\\}\\}$`, 'i');
-        const tagRects = [];
-        const locations = [];
-        tagItems.forEach((item) => {
-            anyTag.lastIndex = 0;
-            let match;
-            while ((match = anyTag.exec(item.str)) !== null) {
-                const charWidth = item.str.length ? item.width / item.str.length : 0;
-                const fontHeight = Math.hypot(item.transform[2], item.transform[3]) || 10;
-                const tagX = item.transform[4] + match.index * charWidth;
-                const tagY = item.transform[5];
-                const tagRect = { x: tagX, y: tagY - fontHeight * 0.3, width: match[0].length * charWidth, height: fontHeight * 1.3 };
-                tagRects.push({ pageIndex: item.pageIndex, rect: tagRect });
-                if (this.readOnly || !ownTag.test(match[0])) {
-                    continue;
-                }
-                locations.push({
-                    id: `spot_${item.pageIndex + 1}_${item.itemIndex}_${match.index}`,
-                    pageIndex: item.pageIndex,
-                    ...placementFor(match[0], tagX, tagY, fontHeight),
-                    tagRect,
+        const tags = findAnchorTags(tagItems);
+        let locations = [];
+        if (this.readOnly) {
+            // Nothing to sign.
+        } else if (this.placements) {
+            locations = this.placements
+                .filter((place) => place.page < pages.length)
+                .map((place, index) => ({
+                    id: `spot_${place.page + 1}_placed_${index}`,
+                    pageIndex: place.page,
+                    pdfX: place.x,
+                    pdfY: place.y,
+                    height: place.height || SIG_HEIGHT,
+                    tagRect: null,
                     signed: false
-                });
-            }
-        });
-        if (locations.length === 0 && !this.readOnly) {
+                }));
+        } else {
+            const role = this.signerRole.toLowerCase();
+            locations = tags
+                .filter((tag) => tag.role.toLowerCase() === role)
+                .map(({ id, pageIndex, pdfX, pdfY, height, tagRect }) => ({ id, pageIndex, pdfX, pdfY, height, tagRect, signed: false }));
+        }
+        if (locations.length === 0 && !this.readOnly && this.allowSignerPlacement) {
+            // No tag and no place from the sender: the signer chooses where to sign.
+            this.signerPlaces = true;
+            this.showToast(LABELS.placeOwnNotice, false);
+        } else if (locations.length === 0 && !this.readOnly) {
             // No tag for this signer: one spot at the bottom right of the last page.
             const lastIndex = pages.length - 1;
             const [, y0, x1] = pages[lastIndex].view;
@@ -720,7 +740,7 @@ export default class SignZeroPortal extends LightningElement {
             });
             this.showToast(LABELS.noTagsNotice, false);
         }
-        this.tagRects = tagRects;
+        this.tagRects = tags.map(({ pageIndex, tagRect }) => ({ pageIndex, rect: tagRect }));
         this.signatureLocations = locations;
     }
 
@@ -928,6 +948,7 @@ export default class SignZeroPortal extends LightningElement {
         this.releasePageImages();
         window.removeEventListener('resize', this.boundFitToWindow);
         window.removeEventListener('message', this.boundEngineMessage);
+        this.stopPlacing();
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
@@ -1068,21 +1089,17 @@ export default class SignZeroPortal extends LightningElement {
 
     /** @param page page size and PDF-to-screen transform at scale 1 */
     addHotspot(spot, wrapper, page, scale) {
-        const [a, b, c, d, e, f] = page.transform.map((value) => value * scale);
-        const toScreen = (x, y) => [a * x + c * y + e, b * x + d * y + f];
-        const [left, top] = toScreen(spot.pdfX, spot.pdfY);
-        const [right, bottom] = toScreen(spot.pdfX + SIG_WIDTH, spot.pdfY + spot.height);
         const hotspot = document.createElement('div');
-        hotspot.className = 'signature-hotspot';
+        hotspot.className = spot.placedBySigner ? 'signature-hotspot own-place' : 'signature-hotspot';
         hotspot.dataset.spotId = spot.id;
         hotspot.setAttribute('role', 'button');
         hotspot.setAttribute('tabindex', '0');
         hotspot.setAttribute('aria-label', LABELS.signHere);
-        hotspot.style.left = `${Math.min(left, right)}px`;
-        hotspot.style.top = `${Math.min(top, bottom)}px`;
-        hotspot.style.width = `${Math.abs(right - left)}px`;
-        hotspot.style.height = `${Math.abs(bottom - top)}px`;
+        this.positionHotspot(hotspot, spot, page, scale);
         hotspot.textContent = LABELS.signHere;
+        if (spot.placedBySigner) {
+            hotspot.addEventListener('pointerdown', (event) => this.handleOwnPlacePointerDown(event, spot));
+        }
         hotspot.addEventListener('click', () => this.handleSpotClick(spot.id));
         hotspot.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -1091,6 +1108,194 @@ export default class SignZeroPortal extends LightningElement {
             }
         });
         wrapper.appendChild(hotspot);
+    }
+
+    /** Sets a hotspot's box on its page from the spot's PDF position. */
+    positionHotspot(hotspot, spot, page, scale) {
+        const [a, b, c, d, e, f] = page.transform.map((value) => value * scale);
+        const toScreen = (x, y) => [a * x + c * y + e, b * x + d * y + f];
+        const [left, top] = toScreen(spot.pdfX, spot.pdfY);
+        const [right, bottom] = toScreen(spot.pdfX + SIG_WIDTH, spot.pdfY + spot.height);
+        hotspot.style.left = `${Math.min(left, right)}px`;
+        hotspot.style.top = `${Math.min(top, bottom)}px`;
+        hotspot.style.width = `${Math.abs(right - left)}px`;
+        hotspot.style.height = `${Math.abs(bottom - top)}px`;
+    }
+
+    // ---------- placing their own signature, when the signer has no tag ----------
+
+    startPlacing() {
+        if (!this.adoptedSignature) {
+            // Adopt a signature first, then place it.
+            this.activeSpotId = null;
+            this.openSignaturePad();
+            this.placeAfterAdopt = true;
+            return;
+        }
+        this.placingSignature = true;
+        if (!this.boundPlacingKeyDown) {
+            this.boundPlacingKeyDown = (event) => {
+                if (event.key === 'Escape') {
+                    this.stopPlacing();
+                }
+            };
+        }
+        window.addEventListener('keydown', this.boundPlacingKeyDown);
+    }
+
+    stopPlacing() {
+        this.placingSignature = false;
+        if (this.boundPlacingKeyDown) {
+            window.removeEventListener('keydown', this.boundPlacingKeyDown);
+        }
+    }
+
+    handleAddAnotherSignature() {
+        this.startPlacing();
+    }
+
+    get showAddAnother() {
+        return this.signerPlaces && !this.placingSignature && this.signatureLocations.length > 0 && !this.isSubmitting;
+    }
+
+    get placingHint() {
+        return this.placingSignature ? LABELS.placeHint : null;
+    }
+
+    /** Page wrappers in the viewer, and the one under a screen point. */
+    pageWrapperAt(clientX, clientY) {
+        const wrappers = [...this.template.querySelectorAll('.page-container')];
+        const index = wrappers.findIndex((wrapper) => {
+            const rect = wrapper.getBoundingClientRect();
+            return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        });
+        return index === -1 ? null : { index, wrapper: wrappers[index] };
+    }
+
+    /** The bottom left PDF point of a signature centred on a screen point, kept inside the page. */
+    pdfPositionAt(hit, clientX, clientY, height) {
+        const page = this.openedDoc.pages[hit.index];
+        const scale = Number(hit.wrapper.dataset.scale);
+        const rect = hit.wrapper.getBoundingClientRect();
+        const u = (clientX - rect.left) / scale;
+        const v = (clientY - rect.top) / scale;
+        const [a, b, c, d, e, f] = page.transform;
+        const det = a * d - b * c;
+        const cx = (d * (u - e) - c * (v - f)) / det;
+        const cy = (-b * (u - e) + a * (v - f)) / det;
+        const [x0, y0, x1, y1] = page.view;
+        return {
+            pdfX: Math.min(Math.max(cx - SIG_WIDTH / 2, x0), x1 - SIG_WIDTH),
+            pdfY: Math.min(Math.max(cy - height / 2, y0), y1 - height)
+        };
+    }
+
+    handlePagesClick(event) {
+        if (!this.placingSignature || this.suppressPageClick || event.target.closest('.signature-hotspot')) {
+            return;
+        }
+        const hit = this.pageWrapperAt(event.clientX, event.clientY);
+        if (!hit) {
+            return;
+        }
+        this.ownPlaceCount += 1;
+        const spot = {
+            id: `spot_own_${this.ownPlaceCount}`,
+            pageIndex: hit.index,
+            ...this.pdfPositionAt(hit, event.clientX, event.clientY, SIG_HEIGHT),
+            height: SIG_HEIGHT,
+            tagRect: null,
+            signed: false,
+            placedBySigner: true
+        };
+        this.signatureLocations = [...this.signatureLocations, spot];
+        this.addHotspot(spot, hit.wrapper, this.openedDoc.pages[hit.index], Number(hit.wrapper.dataset.scale));
+        this.applySignature(spot);
+        this.stopPlacing();
+    }
+
+    addRemoveButton(element, spot) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'own-place-remove';
+        remove.textContent = '\u00d7';
+        remove.title = LABELS.placeRemove;
+        remove.setAttribute('aria-label', LABELS.placeRemove);
+        remove.addEventListener('pointerdown', (event) => event.stopPropagation());
+        remove.addEventListener('click', (event) => {
+            event.stopPropagation();
+            this.removeOwnPlace(spot);
+        });
+        element.appendChild(remove);
+        element.addEventListener('keydown', (event) => {
+            if (event.key === 'Delete' || event.key === 'Backspace') {
+                event.preventDefault();
+                this.removeOwnPlace(spot);
+            }
+        });
+    }
+
+    removeOwnPlace(spot) {
+        if (this.isSubmitting) {
+            return;
+        }
+        const element = this.hotspotElement(spot.id);
+        if (element) {
+            element.remove();
+        }
+        this.signatureLocations = this.signatureLocations.filter((loc) => loc !== spot);
+    }
+
+    handleOwnPlacePointerDown(event, spot) {
+        if (event.button !== 0 || this.isSubmitting) {
+            return;
+        }
+        event.preventDefault();
+        const element = event.currentTarget;
+        element.focus({ preventScroll: true });
+        const rect = element.getBoundingClientRect();
+        // Where the box was grabbed, from its centre, so it does not jump under the pointer.
+        const drag = {
+            startX: event.clientX,
+            startY: event.clientY,
+            offsetX: event.clientX - (rect.left + rect.width / 2),
+            offsetY: event.clientY - (rect.top + rect.height / 2),
+            moved: false
+        };
+        const move = (e) => {
+            if (!drag.moved && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < DRAG_THRESHOLD_PX) {
+                return;
+            }
+            drag.moved = true;
+            const x = e.clientX - drag.offsetX;
+            const y = e.clientY - drag.offsetY;
+            const hit = this.pageWrapperAt(x, y);
+            if (!hit) {
+                return;
+            }
+            Object.assign(spot, { pageIndex: hit.index, ...this.pdfPositionAt(hit, x, y, spot.height) });
+            if (element.parentElement !== hit.wrapper) {
+                hit.wrapper.appendChild(element);
+            }
+            this.positionHotspot(element, spot, this.openedDoc.pages[hit.index], Number(hit.wrapper.dataset.scale));
+        };
+        const up = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+            if (drag.moved) {
+                // The click that may follow a drag must not place another signature.
+                this.suppressPageClick = true;
+                // eslint-disable-next-line @lwc/lwc/no-async-operation
+                setTimeout(() => {
+                    this.suppressPageClick = false;
+                }, 0);
+                this.signatureLocations = [...this.signatureLocations];
+            }
+        };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
     }
 
     hotspotElement(spotId) {
@@ -1102,6 +1307,16 @@ export default class SignZeroPortal extends LightningElement {
     handleJumpToNextField() {
         if (!this.consentAccepted) {
             this.askConsent(() => this.handleJumpToNextField());
+            return;
+        }
+        if (this.signerPlaces) {
+            if (this.placingSignature) {
+                this.stopPlacing();
+            } else if (this.signatureLocations.length === 0) {
+                this.startPlacing();
+            } else {
+                this.handleFinalSubmission();
+            }
             return;
         }
         const pending = this.signatureLocations.filter((loc) => !loc.signed);
@@ -1132,7 +1347,7 @@ export default class SignZeroPortal extends LightningElement {
             return;
         }
         const spot = this.signatureLocations.find((loc) => loc.id === spotId);
-        if (!spot) {
+        if (!spot || spot.placedBySigner) {
             return;
         }
         this.guidedIndex = this.signatureLocations.indexOf(spot);
@@ -1157,6 +1372,9 @@ export default class SignZeroPortal extends LightningElement {
             element.appendChild(img);
             element.classList.add('signed');
             element.setAttribute('aria-label', 'Signed');
+            if (spot.placedBySigner) {
+                this.addRemoveButton(element, spot);
+            }
         }
         // Reassign so counts re-render.
         this.signatureLocations = [...this.signatureLocations];
@@ -1226,6 +1444,7 @@ export default class SignZeroPortal extends LightningElement {
         this.showSignatureModal = false;
         this.activeSpotId = null;
         this.sigCtx = null;
+        this.placeAfterAdopt = false;
     }
 
     renderedCallback() {
@@ -1296,24 +1515,37 @@ export default class SignZeroPortal extends LightningElement {
         this.padIsEmpty = true;
     }
 
-    /** Typed signature: the name in the chosen font, as a PNG. */
+    /**
+     * Typed signature: the name in the chosen font, as a PNG. Cropped to the ink across, but to the font's full line
+     * height down, so the letters sit at handwriting size in the signature area instead of filling it.
+     */
     renderTypedSignature() {
         const style = TYPED_STYLES[this.typedStyle];
-        const canvas = document.createElement('canvas');
-        canvas.width = SIGNATURE_IMAGE_WIDTH;
-        canvas.height = SIGNATURE_IMAGE_HEIGHT;
-        const ctx = canvas.getContext('2d');
         const text = this.typedName.trim();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         let size = 110;
+        let font;
+        let metrics;
         do {
-            ctx.font = `${style.italic ? 'italic ' : ''}${size}px ${style.family}`;
+            font = `${style.italic ? 'italic ' : ''}${size}px ${style.family}`;
+            ctx.font = font;
+            metrics = ctx.measureText(text);
             size -= 4;
-        } while (ctx.measureText(text).width > canvas.width - 40 && size > 24);
+        } while (metrics.width > SIGNATURE_IMAGE_WIDTH - 40 && size > 24);
+        // The same line height for every style (fonts report very different ones); flourishes past it are kept.
+        const fontSize = size + 4;
+        const ascent = Math.max(TYPED_ASCENT * fontSize, metrics.actualBoundingBoxAscent);
+        const descent = Math.max(TYPED_DESCENT * fontSize, metrics.actualBoundingBoxDescent);
+        canvas.width = Math.ceil(metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight) + INK_EDGE * 2;
+        canvas.height = Math.ceil(ascent + descent) + INK_EDGE * 2;
+        // Resizing the canvas resets its drawing state.
+        ctx.font = font;
         ctx.fillStyle = INK;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-        return trimToInk(canvas).toDataURL('image/png');
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(text, metrics.actualBoundingBoxLeft + INK_EDGE, ascent + INK_EDGE);
+        return canvas.toDataURL('image/png');
     }
 
     get toastClass() {
@@ -1426,15 +1658,20 @@ export default class SignZeroPortal extends LightningElement {
         if (spot && !spot.signed) {
             this.applySignature(spot);
         }
+        const placeNext = this.placeAfterAdopt;
         this.closeSignatureModal();
+        if (placeNext) {
+            this.startPlacing();
+        }
     }
 
     // ---------- submit / decline ----------
 
     async handleFinalSubmission() {
-        if (this.remainingSpots > 0 || !this.adoptedSignature) {
+        if (this.remainingSpots > 0 || !this.adoptedSignature || this.signatureLocations.length === 0) {
             return;
         }
+        this.stopPlacing();
         this.state = 'submitting';
         try {
             const stampStarted = performance.now();
@@ -1447,7 +1684,17 @@ export default class SignZeroPortal extends LightningElement {
                 // An uploaded image reaches Salesforce only inside the signed PDF.
                 signatureImageBase64: this.adoptedMethod === 'Uploaded' ? null : this.adoptedSignature.split(',')[1],
                 signatureMethod: this.adoptedMethod,
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                // Recorded as evidence that the signer chose where to sign.
+                signerPlacements: this.signerPlaces
+                    ? JSON.stringify(
+                          this.signatureLocations.map(({ pageIndex, pdfX, pdfY }) => ({
+                              page: pageIndex,
+                              x: Math.round(pdfX * 100) / 100,
+                              y: Math.round(pdfY * 100) / 100
+                          }))
+                      )
+                    : null
             });
             timing('submitted to Salesforce', submitStarted);
             this.isFinalSigner = result && result.isFinalSigner === true;

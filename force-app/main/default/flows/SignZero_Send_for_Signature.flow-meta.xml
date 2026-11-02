@@ -58,6 +58,12 @@
                 <elementReference>signers</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>fieldLayout</name>
+            <value>
+                <elementReference>fieldLayout</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>SignZeroOrchestrator</nameSegment>
         <offset>0</offset>
         <outputParameters>
@@ -83,6 +89,49 @@
             <targetReference>Each_File_Link</targetReference>
         </connector>
     </assignments>
+    <assignments>
+        <description>Keeps the chosen PDF&apos;s ContentDocumentId as text. A screen component reading the choice field gets its label (the file title), not its value.</description>
+        <name>Remember_Document</name>
+        <label>Remember Document</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>chosenDocumentId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Document</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Signers</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>Every signer already has a {{sig:Role}} tag in the PDF: send without the Place Signatures screen.</description>
+        <name>Every_Role_Tagged</name>
+        <label>Every role tagged?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Place_Signatures</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>All_Tagged</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>allRolesTagged</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_For_Signature</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Emails_Will_Fail</name>
         <label>Emails will fail?</label>
@@ -234,7 +283,7 @@
         <description>The file to send: the passed-in ContentVersion&apos;s document, or the PDF chosen on screen.</description>
         <name>DocumentToSend</name>
         <dataType>String</dataType>
-        <expression>BLANKVALUE({!Get_Content_Version.ContentDocumentId}, {!Document})</expression>
+        <expression>BLANKVALUE({!Get_Content_Version.ContentDocumentId}, {!chosenDocumentId})</expression>
     </formulas>
     <formulas>
         <description>SZ_Flow_Sent_Message with the envelope number, document title and signer count filled in.</description>
@@ -452,12 +501,18 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Send_For_Signature</targetReference>
+            <targetReference>Every_Role_Tagged</targetReference>
         </connector>
         <fields>
             <name>Signer_Editor</name>
             <extensionName>c:signZeroSignerEditor</extensionName>
             <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>contentDocumentId</name>
+                <value>
+                    <elementReference>DocumentToSend</elementReference>
+                </value>
+            </inputParameters>
             <inputParameters>
                 <name>signers</name>
                 <value>
@@ -466,6 +521,10 @@
             </inputParameters>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>allRolesTagged</assignToReference>
+                <name>allRolesTagged</name>
+            </outputParameters>
             <outputParameters>
                 <assignToReference>signers</assignToReference>
                 <name>signers</name>
@@ -479,7 +538,6 @@
                 </width>
             </styleProperties>
         </fields>
-        <nextOrFinishButtonLabel>Send for Signature</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
@@ -492,7 +550,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Add_Signers</targetReference>
+            <targetReference>Remember_Document</targetReference>
         </connector>
         <fields>
             <name>Document</name>
@@ -558,6 +616,59 @@
                 </width>
             </styleProperties>
         </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <description>The sender places each role&apos;s signatures on the PDF; the document&apos;s tags start out placed.</description>
+        <name>Place_Signatures</name>
+        <label>Place Signatures</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Send_For_Signature</targetReference>
+        </connector>
+        <fields>
+            <name>Field_Placer</name>
+            <extensionName>c:signZeroFieldPlacer</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>contentDocumentId</name>
+                <value>
+                    <elementReference>DocumentToSend</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>signers</name>
+                <value>
+                    <elementReference>signers</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>fieldLayout</name>
+                <value>
+                    <elementReference>fieldLayout</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>fieldLayout</assignToReference>
+                <name>fieldLayout</name>
+            </outputParameters>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <nextOrFinishButtonLabel>Send for Signature</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
@@ -653,6 +764,25 @@
     </start>
     <status>Active</status>
     <variables>
+        <description>True when every signer&apos;s role has a {{sig:Role}} tag in the PDF, as read on the Add Signers screen.</description>
+        <name>allRolesTagged</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>ContentDocumentId of the PDF chosen on the Choose Document screen.</description>
+        <name>chosenDocumentId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <description>Optional. The PDF to send, as a ContentVersion Id; skips choosing or uploading the document. SignZero sends the latest version of its file.</description>
         <name>contentVersionId</name>
         <dataType>String</dataType>
@@ -681,6 +811,14 @@
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Where each signer role signs, from the Place Signatures screen; blank uses the PDF&apos;s tags.</description>
+        <name>fieldLayout</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>The record the document is sent from; passed in automatically by a record action.</description>

@@ -58,6 +58,12 @@ public with sharing class SignZeroOrchestrator {
       description='Optional. Other record Ids that should also get the executed agreement and certificate (the files are shared, not copied).'
     )
     public List<Id> additionalRecordIds;
+    /** @description Signature places chosen on the Place Signatures screen, as JSON; blank uses the PDF's tags. */
+    @InvocableVariable(
+      label='Field Layout'
+      description='Optional. Where each signer role signs, as JSON from the Place Signatures screen: [{"role","page","x","y","height"}] in PDF points, page from 0. Blank: signers sign at their {{sig:Role}} tags.'
+    )
+    public String fieldLayout;
   }
 
   /**
@@ -95,7 +101,12 @@ public with sharing class SignZeroOrchestrator {
     List<List<SignZeroSigner>> signersPerEnvelope = new List<List<SignZeroSigner>>();
     for (DispatchRequest req : requests) {
       ContentVersion cv = versions.get(req.contentDocumentId);
-      signersPerEnvelope.add(collectSigners(req));
+      List<SignZeroSigner> signers = collectSigners(req);
+      signersPerEnvelope.add(signers);
+      Set<String> signerRoles = new Set<String>();
+      for (SignZeroSigner s : signers) {
+        signerRoles.add(s.role);
+      }
       String hash = SignZeroSealService.computeSHA256Hash(cv.VersionData);
       envelopes.add(
         new SignZero_Request__c(
@@ -108,6 +119,10 @@ public with sharing class SignZeroOrchestrator {
           Related_Record_Ids__c = req.additionalRecordIds == null
             ? null
             : String.join(req.additionalRecordIds, ','),
+          Field_Layout__c = SignZeroFieldLayout.normalize(
+            req.fieldLayout,
+            signerRoles
+          ),
           Pre_Sign_Hash__c = hash,
           Working_Copy_Hash__c = hash,
           Status__c = SignZeroConstants.ENVELOPE_OUT_FOR_SIGNATURE
