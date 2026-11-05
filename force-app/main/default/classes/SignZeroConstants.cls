@@ -164,6 +164,12 @@ public inherited sharing class SignZeroConstants {
   public static final Integer DEFAULT_SIGNATURE_HEIGHT = 30;
   /** @description Most signature places one envelope's field layout may hold. */
   public static final Integer MAX_FIELD_PLACEMENTS = 500;
+  /** @description Room kept in a sealed PDF for the digital signature, in bytes; a certificate chain must fit. */
+  public static final Integer MAX_SEAL_BYTES = 8192;
+  /** @description The Base64 of a PEM certificate. */
+  public static final Pattern PEM_CERTIFICATE = Pattern.compile(
+    '-----BEGIN CERTIFICATE-----([A-Za-z0-9+/=\\s]+)-----END CERTIFICATE-----'
+  );
   /** @description Longest recall reason kept. */
   public static final Integer MAX_RECALL_REASON = 1000;
   /** @description Signers per reminder batch; small because each expiry notice runs a query. */

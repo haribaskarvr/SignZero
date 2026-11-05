@@ -1241,6 +1241,22 @@
         <value>Could not invite the next signer: {0}</value>
     </labels>
     <labels>
+        <fullName>SZ_Err_Digital_Seal</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Envelope completed without its PDF seal ({0} = why)</shortDescription>
+        <value>The agreement is complete, but the PDF digital seal could not be added: {0}</value>
+    </labels>
+    <labels>
+        <fullName>SZ_Seal_Reason</fullName>
+        <categories>SignZero</categories>
+        <language>en_US</language>
+        <protected>false</protected>
+        <shortDescription>Reason shown with the PDF digital seal</shortDescription>
+        <value>All parties have signed</value>
+    </labels>
+    <labels>
         <fullName>SZ_Err_Seal_Failed</fullName>
         <categories>SignZero</categories>
         <language>en_US</language>

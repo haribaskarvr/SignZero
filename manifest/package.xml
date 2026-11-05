@@ -15,6 +15,7 @@
         <members>SignZeroNotifier</members>
         <members>SignZeroOrchestrator</members>
         <members>SignZeroPdfAppender</members>
+        <members>SignZeroPdfSealer</members>
         <members>SignZeroProgressionJob</members>
         <members>SignZeroRecallController</members>
         <members>SignZeroRecordGuard</members>
@@ -131,6 +132,7 @@
         <members>SignZero_Setting__mdt.Reminder_Schedule__c</members>
         <members>SignZero_Setting__mdt.Require_Consent_Before_Viewing__c</members>
         <members>SignZero_Setting__mdt.Require_Passcode__c</members>
+        <members>SignZero_Setting__mdt.Seal_Certificate__c</members>
         <members>SignZero_Setting__mdt.Site_Base_Url__c</members>
         <members>SignZero_Setting__mdt.Token_Validity_Days__c</members>
         <members>SignZero_Email_Template__mdt.Template_Name__c</members>
@@ -176,6 +178,7 @@
         <members>SZ_Email_Check_Title</members>
         <members>SZ_Email_Check_User_Unverified</members>
         <members>SZ_Err_Consent_Required</members>
+        <members>SZ_Err_Digital_Seal</members>
         <members>SZ_Err_Invalid_Pdf</members>
         <members>SZ_Err_Invalid_Session</members>
         <members>SZ_Err_Invite_Failed</members>
@@ -321,6 +324,7 @@
         <members>SZ_Resend_Err_Send_Failed</members>
         <members>SZ_Resend_Err_Signer_Not_Found</members>
         <members>SZ_Resend_Err_Status</members>
+        <members>SZ_Seal_Reason</members>
         <members>SZ_Send_Err_Field_Layout</members>
         <members>SZ_Send_Err_Field_Layout_Role</members>
         <members>SZ_Send_Err_File_Not_Found</members>

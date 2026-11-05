@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Seal_Certificate__c</fullName>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <inlineHelpText>Optional: the public certificate of X.509 Certificate Name, as PEM text (open the .crt downloaded from Certificate and Key Management and paste it here). When both are set, the combined PDF gets a digital signature that PDF readers can check. If the file holds several certificates, the first must be the signing one; only that one goes into the PDF.</inlineHelpText>
+    <label>Seal Certificate</label>
+    <length>32768</length>
+    <type>LongTextArea</type>
+    <visibleLines>6</visibleLines>
+</CustomField>

@@ -20,6 +20,7 @@ public inherited sharing class SignZeroPdfAppender {
     Integer rootNum;
     Integer startXref;
     String idEntry;
+    String infoEntry;
     Map<Integer, Integer> offsets = new Map<Integer, Integer>();
   }
 
@@ -113,6 +114,256 @@ public inherited sharing class SignZeroPdfAppender {
     return EncodingUtil.convertFromHex(b.data + String.join(out, ''));
   }
 
+  // ---------- digital signature ----------
+
+  /**
+   * @description A PDF laid out for a digital signature: everything but the signature value is final, because the
+   *   signature covers all the bytes around it.
+   */
+  public class PreparedSignature {
+    private String head; // hex, up to and including the < of /Contents
+    private String tail; // hex, from the > of /Contents to the end
+    private Integer maxBytes;
+
+    /**
+     * @description The bytes the signature covers.
+     * @return the file without the /Contents hex string
+     */
+    public Blob signedBytes() {
+      return EncodingUtil.convertFromHex(
+        head.left(head.length() - 2) + tail.substring(2)
+      );
+    }
+
+    /**
+     * @description Writes the signature into its reserved space.
+     * @param signature the signature's DER, as hex
+     * @return the signed PDF
+     */
+    public Blob withSignature(String signature) {
+      if (signature.length() > maxBytes * 2) {
+        throw new UnsupportedPdfException(
+          'The signature does not fit its reserved space'
+        );
+      }
+      // The signature is written in hex inside the file, so its hex is written as text.
+      return EncodingUtil.convertFromHex(
+        head + hex(signature.rightPad(maxBytes * 2, '0')) + tail
+      );
+    }
+  }
+
+  /**
+   * @description Adds an invisible signature field and a signature dictionary as an incremental update.
+   * @param pdf the PDF to sign
+   * @param maxBytes room to keep for the signature
+   * @param sealedBy the name shown with the signature
+   * @param reason why it is signed
+   * @return the laid-out PDF, waiting for its signature
+   */
+  public static PreparedSignature prepareSignature(
+    Blob pdf,
+    Integer maxBytes,
+    String sealedBy,
+    String reason
+  ) {
+    ParsedPdf b = parse(EncodingUtil.convertToHex(pdf));
+    Integer signatureNum = b.size;
+    Integer fieldNum = b.size + 1;
+    String fieldRef = fieldNum + ' 0 R';
+
+    Map<Integer, String> written = new Map<Integer, String>();
+    String catalog = objectDict(b, b.rootNum);
+    Integer pageNum = firstPage(b, refAfter(catalog, '/Pages'));
+    written.put(
+      fieldNum,
+      hex(
+        fieldNum +
+          ' 0 obj\n<</Type/Annot/Subtype/Widget/FT/Sig/F 132/Rect[0 0 0 0]/T(SignZero Seal)/V ' +
+          signatureNum +
+          ' 0 R/P ' +
+          pageNum +
+          ' 0 R>>\nendobj\n'
+      )
+    );
+    written.put(b.rootNum, hex(withSignatureField(b, written, catalog, fieldRef)));
+    String page = objectDict(b, pageNum);
+    Matcher annotsRef = Pattern.compile('/Annots\\s+(\\d+)\\s+\\d+\\s+R').matcher(page);
+    if (annotsRef.find()) {
+      Integer annotsNum = Integer.valueOf(annotsRef.group(1));
+      written.put(
+        annotsNum,
+        hex(
+          annotsNum +
+            ' 0 obj\n' +
+            objectDict(b, annotsNum).replaceFirst('\\[', '[' + fieldRef + ' ') +
+            '\nendobj\n'
+        )
+      );
+    } else {
+      page = Pattern.compile('/Annots\\s*\\[').matcher(page).find()
+        ? page.replaceFirst('/Annots\\s*\\[', '/Annots[' + fieldRef + ' ')
+        : page.replaceFirst('<<', '<</Annots[' + fieldRef + '] ');
+      written.put(pageNum, hex(pageNum + ' 0 obj\n' + page + '\nendobj\n'));
+    }
+
+    // Layout: the update's objects, the signature dictionary, then the cross-reference section.
+    Integer cursor = b.data.length() / 2 + 1;
+    List<String> objects = new List<String>{ hex('\n') };
+    List<Integer> nums = new List<Integer>(written.keySet());
+    nums.sort();
+    Map<Integer, Integer> newOffsets = new Map<Integer, Integer>();
+    for (Integer num : nums) {
+      newOffsets.put(num, cursor);
+      objects.add(written.get(num));
+      cursor += written.get(num).length() / 2;
+    }
+    newOffsets.put(signatureNum, cursor);
+    nums.add(signatureNum);
+    nums.sort();
+
+    // /ByteRange holds offsets of this very layout, so its numbers have a fixed width.
+    String beforeRange =
+      signatureNum +
+      ' 0 obj\n<</Type/Sig/Filter/Adobe.PPKLite/SubFilter/ETSI.CAdES.detached/M(D:' +
+      Datetime.now().formatGmt('yyyyMMddHHmmss') +
+      '+00\'00\')/Name(' +
+      pdfText(sealedBy) +
+      ')/Reason(' +
+      pdfText(reason) +
+      ')/ByteRange[0 ';
+    String afterRange = ']/Contents<';
+    String afterContents = '>>>\nendobj\n';
+    Integer rangeWidth = 10 + 1 + 10 + 1 + 10;
+    Integer contentsAt =
+      cursor +
+      beforeRange.length() +
+      rangeWidth +
+      afterRange.length() -
+      1; // the <
+    Integer contentsEnd = contentsAt + 2 + maxBytes * 2;
+    Integer xrefOffset = contentsEnd + afterContents.length() - 1;
+    String trailer =
+      'trailer\n<</Size ' +
+      (fieldNum + 1) +
+      '/Root ' +
+      b.rootNum +
+      ' 0 R/Prev ' +
+      b.startXref +
+      (b.infoEntry == null ? '' : '/Info ' + b.infoEntry) +
+      (b.idEntry == null ? '' : '/ID ' + b.idEntry) +
+      '>>\nstartxref\n' +
+      xrefOffset +
+      '\n%%EOF\n';
+    String closing = afterContents.substring(1) + xrefSection(nums, newOffsets) + trailer;
+    Integer fileEnd = xrefOffset + closing.length() - (afterContents.length() - 1);
+    String range =
+      String.valueOf(contentsAt).leftPad(10, '0') +
+      ' ' +
+      String.valueOf(contentsEnd).leftPad(10, '0') +
+      ' ' +
+      String.valueOf(fileEnd - contentsEnd).leftPad(10, '0');
+
+    PreparedSignature prepared = new PreparedSignature();
+    prepared.maxBytes = maxBytes;
+    prepared.head =
+      b.data +
+      String.join(objects, '') +
+      hex(beforeRange + range + afterRange);
+    prepared.tail = hex('>' + closing);
+    return prepared;
+  }
+
+  /**
+   * @description Adds a signature field to the document's form, creating the form if it has none.
+   * @param pdf the parsed PDF
+   * @param written updated objects, to which a separate form object is added
+   * @param catalog the catalog's dictionary
+   * @param fieldRef reference to the new field
+   * @return the updated catalog object, as text
+   */
+  private static String withSignatureField(
+    ParsedPdf pdf,
+    Map<Integer, String> written,
+    String catalog,
+    String fieldRef
+  ) {
+    String header = pdf.rootNum + ' 0 obj\n';
+    Matcher formRef = Pattern.compile('/AcroForm\\s+(\\d+)\\s+\\d+\\s+R').matcher(catalog);
+    if (formRef.find()) {
+      Integer formNum = Integer.valueOf(formRef.group(1));
+      written.put(
+        formNum,
+        hex(
+          formNum +
+            ' 0 obj\n' +
+            formWithField(objectDict(pdf, formNum), fieldRef) +
+            '\nendobj\n'
+        )
+      );
+      return header + catalog + '\nendobj\n';
+    }
+    if (catalog.contains('/AcroForm')) {
+      throw new UnsupportedPdfException(
+        'A form written inside the catalog is not supported'
+      );
+    }
+    return header +
+      catalog.replaceFirst(
+        '<<',
+        '<</AcroForm<</Fields[' + fieldRef + ']/SigFlags 3>> '
+      ) +
+      '\nendobj\n';
+  }
+
+  /**
+   * @description Adds a field to a form dictionary and marks the form as signed.
+   * @param form the form's dictionary
+   * @param fieldRef reference to the new field
+   * @return the updated dictionary
+   */
+  private static String formWithField(String form, String fieldRef) {
+    if (!Pattern.compile('/Fields\\s*\\[').matcher(form).find()) {
+      throw new UnsupportedPdfException('The form has no list of fields');
+    }
+    String updated = form.replaceFirst('/Fields\\s*\\[', '/Fields[' + fieldRef + ' ');
+    return Pattern.compile('/SigFlags\\s+\\d+').matcher(updated).find()
+      ? updated.replaceFirst('/SigFlags\\s+\\d+', '/SigFlags 3')
+      : updated.replaceFirst('<<', '<</SigFlags 3 ');
+  }
+
+  /**
+   * @description Walks down the page tree to the first page.
+   * @param pdf the parsed PDF
+   * @param pagesNum the page tree's root
+   * @return the first page's object number
+   */
+  private static Integer firstPage(ParsedPdf pdf, Integer pagesNum) {
+    Integer num = pagesNum;
+    for (Integer depth = 0; depth < 50; depth++) {
+      Matcher kids = Pattern.compile('/Kids\\s*\\[\\s*(\\d+)\\s+\\d+\\s+R')
+        .matcher(objectDict(pdf, num));
+      if (!kids.find()) {
+        return num;
+      }
+      num = Integer.valueOf(kids.group(1));
+    }
+    throw new UnsupportedPdfException('The page tree is too deep');
+  }
+
+  /**
+   * @description Makes text safe inside a PDF literal string, in ASCII as the update is written.
+   * @param text the text
+   * @return the escaped text
+   */
+  private static String pdfText(String text) {
+    return (text == null ? '' : text)
+      .replaceAll('[^\\x20-\\x7E]', '?')
+      .replace('\\', '\\\\')
+      .replace('(', '\\(')
+      .replace(')', '\\)');
+  }
+
   // ---------- parsing ----------
 
   /**
@@ -150,6 +401,8 @@ public inherited sharing class SignZeroPdfAppender {
         pdf.rootNum = refAfter(trailer, '/Root');
         Matcher id = Pattern.compile('/ID\\s*(\\[[^\\]]*\\])').matcher(trailer);
         pdf.idEntry = id.find() ? id.group(1) : null;
+        Matcher info = Pattern.compile('/Info\\s*(\\d+\\s+\\d+\\s+R)').matcher(trailer);
+        pdf.infoEntry = info.find() ? info.group(1) : null;
         newest = false;
       }
       sectionOffset = trailer.contains('/Prev')

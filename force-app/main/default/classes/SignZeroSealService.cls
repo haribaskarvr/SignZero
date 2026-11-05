@@ -26,6 +26,8 @@ public without sharing class SignZeroSealService {
     String pkiSignature;
     Blob certificate;
     Blob combined; // null when the executed PDF is not in a format SignZeroPdfAppender supports
+    Boolean digitallySealed = false;
+    String sealError; // why the combined PDF has no digital seal; the envelope still completes
     ContentVersion finalVersion;
     ContentVersion certVersion;
     ContentVersion combinedVersion;
@@ -61,10 +63,21 @@ public without sharing class SignZeroSealService {
 
     // 1. Reads: load, hash, sign, render, combine.
     String certName = SignZeroSettings.get().Certificate_Name__c;
+    Blob sealCertificate;
+    String sealSetupError;
+    try {
+      sealCertificate = String.isBlank(certName)
+        ? null
+        : SignZeroSettings.sealCertificate();
+    } catch (Exception e) {
+      // An unreadable certificate must not stop envelopes from completing.
+      sealSetupError = e.getMessage();
+    }
     for (Id requestId : requestIds) {
       SignZero_Request__c req = requests.get(requestId);
       SealContext ctx = new SealContext();
       ctx.req = req;
+      ctx.sealError = sealSetupError;
       try {
         ctx.executed = [
           SELECT Body
@@ -76,7 +89,7 @@ public without sharing class SignZeroSealService {
         ctx.postHash = computeSHA256Hash(ctx.executed);
         if (String.isNotBlank(certName)) {
           ctx.pkiSignature = EncodingUtil.base64Encode(
-            Crypto.signWithCertificate('RSA-SHA256', ctx.executed, certName)
+            SignZeroPdfSealer.sign(ctx.executed, certName)
           );
         }
         ctx.certificate = SignZeroCertificateController.generateCertificatePdfBlob(
@@ -103,6 +116,24 @@ public without sharing class SignZeroSealService {
             LoggingLevel.WARN,
             'SignZero could not combine ' + req.Name + ': ' + e.getMessage()
           );
+          if (sealCertificate != null) {
+            ctx.sealError = e.getMessage();
+          }
+        }
+      }
+      if (ctx.combined != null && sealCertificate != null) {
+        try {
+          ctx.combined = SignZeroPdfSealer.seal(
+            ctx.combined,
+            certName,
+            sealCertificate,
+            SignZeroSettings.get().Company_Name__c,
+            System.Label.SZ_Seal_Reason
+          );
+          ctx.digitallySealed = true;
+        } catch (Exception e) {
+          // The files are complete and hashed without the seal, so signers are not held back.
+          ctx.sealError = e.getMessage();
         }
       }
       contexts.add(ctx);
@@ -193,7 +224,7 @@ public without sharing class SignZeroSealService {
           Combined_Document_Version_Id__c = ctx.combinedVersion == null
             ? null
             : ctx.combinedVersion.Id,
-          Error_Message__c = null
+          Error_Message__c = sealProblem(ctx)
         )
       );
       for (SignZero_Recipient__c r : ctx.req.Recipients__r) {
@@ -207,7 +238,8 @@ public without sharing class SignZeroSealService {
           'Envelope sealed' +
           (ctx.pkiSignature == null
             ? ''
-            : ' and signed with certificate ' + certName);
+            : ' and signed with certificate ' + certName) +
+          (ctx.digitallySealed ? '; PDF digital seal added' : '');
         audit.add(e);
       }
     }
@@ -227,7 +259,7 @@ public without sharing class SignZeroSealService {
         SignZeroNotifier.notifyOwner(
           ctx.req,
           System.Label.SZ_Outcome_Completed,
-          System.Label.SZ_Owner_Completed
+          ctx.sealError == null ? System.Label.SZ_Owner_Completed : sealProblem(ctx)
         );
       } else {
         SignZeroNotifier.notifyOwner(
@@ -237,6 +269,20 @@ public without sharing class SignZeroSealService {
         );
       }
     }
+  }
+
+  /**
+   * @description Describes why an envelope completed without its digital seal.
+   * @param ctx the sealed envelope
+   * @return the message, or null when nothing went wrong
+   */
+  private static String sealProblem(SealContext ctx) {
+    return ctx.sealError == null
+      ? null
+      : String.format(
+          System.Label.SZ_Err_Digital_Seal,
+          new List<Object>{ ctx.sealError }
+        );
   }
 
   /**

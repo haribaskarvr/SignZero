@@ -29,6 +29,30 @@ public inherited sharing class SignZeroSettings {
   }
 
   /**
+   * @description Reads the public certificate that goes inside sealed PDFs.
+   * @return the first certificate in Seal Certificate as DER, or null when it is blank
+   */
+  public static Blob sealCertificate() {
+    // getInstance gives only the first 255 characters of long text, so the full value needs a query.
+    String pem = Test.isRunningTest()
+      ? get().Seal_Certificate__c
+      : [
+          SELECT Seal_Certificate__c
+          FROM SignZero_Setting__mdt
+          WHERE DeveloperName = :SignZeroConstants.SETTINGS_RECORD
+          WITH SYSTEM_MODE
+        ]
+        ?.Seal_Certificate__c;
+    if (String.isBlank(pem)) {
+      return null;
+    }
+    Matcher body = SignZeroConstants.PEM_CERTIFICATE.matcher(pem);
+    // Without PEM armour the text is taken as plain Base64.
+    String base64 = body.find() ? body.group(1) : pem;
+    return EncodingUtil.base64Decode(base64.replaceAll('\\s', ''));
+  }
+
+  /**
    * @description Whether a signer with no tag and no place from the sender drags their signature onto the document.
    * @return true unless Allow Signer Placement is off
    */
