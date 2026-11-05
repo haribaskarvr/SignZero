@@ -1,6 +1,6 @@
 # SignZero
 
-**E-signatures that live entirely inside Salesforce.**
+**Free, open-source e-signature for Salesforce: e-signatures that live entirely inside your org.**
 
 Send a PDF for signature from any record, let people sign in their browser without a login, and get the signed
 agreement, a Certificate of Completion and a tamper-evident audit trail filed back on the record. No third-party
