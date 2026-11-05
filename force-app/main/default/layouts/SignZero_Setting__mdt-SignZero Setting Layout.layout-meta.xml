@@ -74,6 +74,10 @@
             </layoutItems>
             <layoutItems>
                 <behavior>Edit</behavior>
+                <field>Seal_Certificate__c</field>
+            </layoutItems>
+            <layoutItems>
+                <behavior>Edit</behavior>
                 <field>Allow_Reassignment__c</field>
             </layoutItems>
             <layoutItems>

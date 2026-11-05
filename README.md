@@ -38,6 +38,7 @@ signing service, no per-envelope fees, and your documents never leave your Sales
 - Personal signing links that expire, and turn read-only once signed
 - Optional one-time passcode emailed to each signer before they can see the document
 - Executed PDF and certificate filed on the source record and any related records
+- Optional PDF digital seal, so Adobe Reader and other PDF readers report any later change to the signed document
 - Automatic reminders on a schedule you set, with a final reminder that states when the link expires
 - Bell notifications for the sender at every step, including when a signing link expires unsigned
 - Reports and a dashboard for envelopes, turnaround and outstanding signatures

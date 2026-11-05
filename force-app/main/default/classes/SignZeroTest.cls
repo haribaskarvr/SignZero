@@ -1686,6 +1686,197 @@ private class SignZeroTest {
     );
   }
 
+  // A self-signed public certificate, only ever parsed here.
+  private static final String SEAL_CERTIFICATE_BASE64 = 'MIIEijCCA3KgAwIBAgIOAaGpsKTcAAAAAEO5rGkwDQYJKoZIhvcNAQELBQAwfTEWMBQGA1UEAwwNU2lnblplcm9fU2VhbDEYMBYGA1UECwwPMDBEOUgwMDAwMDNjQklUMRcwFQYDVQQKDA5TYWxlc2ZvcmNlLmNvbTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzELMAkGA1UECAwCQ0ExCzAJBgNVBAYTAlVTMB4XDTI2MTEwNTAzMTEyOFoXDTI3MTEwNTAwMDAwMFowfTEWMBQGA1UEAwwNU2lnblplcm9fU2VhbDEYMBYGA1UECwwPMDBEOUgwMDAwMDNjQklUMRcwFQYDVQQKDA5TYWxlc2ZvcmNlLmNvbTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzELMAkGA1UECAwCQ0ExCzAJBgNVBAYTAlVTMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq8sYS8WK4+DybNwhvNpvVQyTWYt9kmqtu6/sVo27D+urYFsAnXuyB/4faHBa5GGoNNaXFCXxg0eo8461HP+cigMNbpX133pKkMg7YRdPmr6bguSVhNjCsB2GqOKleCJFAYJ185BbN5+bQCE75g/L3C4hpqo4m9VCSfZgDa/fjMeLfLvHrhkmBWw551SSohHQ4apMaxCZMKvAX55aeUF5+8GLujQUtTpwBd5zC4CxCFLdPK9p4IyN8Avj6HyWcogeGxMOGaOO44St81/wjgROR60vMkfr96c698vDUC4MDsyjZhryVov7qKg80jJjotnTs/vfTjMYKhjlITPCU/pcoQIDAQABo4IBBjCCAQIwHQYDVR0OBBYEFDwr7KRVY0t1VRGKXh1OHKGFsplpMBgGA1UdEQQRMA+CDVNpZ25aZXJvX1NlYWwwDwYDVR0TAQH/BAUwAwEB/zCBtQYDVR0jBIGtMIGqgBQ8K+ykVWNLdVURil4dThyhhbKZaaGBgaR/MH0xFjAUBgNVBAMMDVNpZ25aZXJvX1NlYWwxGDAWBgNVBAsMDzAwRDlIMDAwMDAzY0JJVDEXMBUGA1UECgwOU2FsZXNmb3JjZS5jb20xFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xCzAJBgNVBAgMAkNBMQswCQYDVQQGEwJVU4IOAaGpsKTcAAAAAEO5rGkwDQYJKoZIhvcNAQELBQADggEBAID1kSAg0LUHEPfCsKZ/lDtmV3s3IExZqOyPYeMVv6U7NnXw5Pg1XsFVqGXYZqsV1dAEGypdPqZpsS3BIwqVC0C1r7QEvwgd8AgJGUBBrkOWANrbK27mMPpzrAs75F4WlkEt7naGZTe6xA21BU1iovUtpcOUx7BiP6Hzj1XsU41x1zKD2vy091IOu8I17g57ntGjElwGy7J4ybuYfJar/IISIR1McDeh3ANRijIIyQFm4jU54DjsFZcHZPXkJipsmsHg3VmEXoPTZVUz8+GLJ2jzYOQtlaXTajkZENHym5LIlYuVySYj4jJjB2thi4GJG+R+GdSSbAx39m6QkunVeHc=';
+
+  private static Integer rangeValue(String sealedHex, Integer rangeAt, Integer index) {
+    // The range's three numbers have a fixed width of 10 digits, after "/ByteRange[0 ".
+    Integer first = rangeAt + '/ByteRange[0 '.length() * 2 + index * 22;
+    return Integer.valueOf(
+      EncodingUtil.convertFromHex(sealedHex.substring(first, first + 20)).toString()
+    );
+  }
+
+  @IsTest
+  static void sealCoversEverythingButItsOwnSignature() {
+    useTestSettings();
+    SignZeroPdfSealer.signatureInTest = Blob.valueOf('signature');
+    Blob pdf = Blob.toPdf('<p>Agreement</p>');
+
+    Blob sealed = SignZeroPdfSealer.seal(
+      pdf,
+      'Any_Certificate',
+      EncodingUtil.base64Decode(SEAL_CERTIFICATE_BASE64),
+      'Acme (UK) Ltd',
+      'All parties have signed'
+    );
+
+    String sealedHex = EncodingUtil.convertToHex(sealed);
+    Assert.isTrue(
+      sealedHex.startsWith(EncodingUtil.convertToHex(pdf)),
+      'sealing only adds to the file'
+    );
+    Assert.isTrue(
+      sealedHex.contains(EncodingUtil.convertToHex(Blob.valueOf('/SubFilter/ETSI.CAdES.detached')))
+    );
+    Assert.isTrue(
+      sealedHex.contains(EncodingUtil.convertToHex(Blob.valueOf('/Name(Acme \\(UK\\) Ltd)'))),
+      'parentheses are escaped in PDF text'
+    );
+    Integer rangeAt = sealedHex.indexOf(
+      EncodingUtil.convertToHex(Blob.valueOf('/ByteRange[0 '))
+    );
+    Integer firstLength = rangeValue(sealedHex, rangeAt, 0);
+    Integer secondStart = rangeValue(sealedHex, rangeAt, 1);
+    Integer secondLength = rangeValue(sealedHex, rangeAt, 2);
+    Assert.areEqual(sealed.size(), secondStart + secondLength, 'the range reaches the end');
+    Assert.areEqual('3c', sealedHex.substring(firstLength * 2, firstLength * 2 + 2), 'first range stops at <');
+    Assert.areEqual('3e', sealedHex.substring(secondStart * 2 - 2, secondStart * 2), 'second range starts after >');
+    Assert.areEqual(
+      SignZeroConstants.MAX_SEAL_BYTES * 2 + 2,
+      secondStart - firstLength
+    );
+    // The result is itself a valid input, which proves its cross-reference chain parses.
+    Assert.isTrue(
+      SignZeroPdfAppender.append(sealed, Blob.toPdf('<p>More</p>')).size() > sealed.size()
+    );
+  }
+
+  @IsTest
+  static void sealRefusesASignatureThatDoesNotFit() {
+    SignZeroPdfSealer.signatureInTest = Blob.valueOf('x'.repeat(SignZeroConstants.MAX_SEAL_BYTES));
+    try {
+      SignZeroPdfSealer.seal(
+        Blob.toPdf('<p>Agreement</p>'),
+        'Any_Certificate',
+        EncodingUtil.base64Decode(SEAL_CERTIFICATE_BASE64),
+        'Acme',
+        'Signed'
+      );
+      Assert.fail('the signature is too large');
+    } catch (SignZeroPdfAppender.UnsupportedPdfException e) {
+      Assert.isTrue(e.getMessage().contains('does not fit'), e.getMessage());
+    }
+  }
+
+  @IsTest
+  static void sealCertificateIsReadFromPemOrPlainBase64() {
+    useTestSettings();
+    Assert.isNull(SignZeroSettings.sealCertificate());
+    SignZeroSettings.cached.Seal_Certificate__c =
+      '-----BEGIN CERTIFICATE-----\n' +
+      SEAL_CERTIFICATE_BASE64.left(64) +
+      '\n' +
+      SEAL_CERTIFICATE_BASE64.substring(64) +
+      '\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n';
+    Assert.areEqual(
+      SEAL_CERTIFICATE_BASE64,
+      EncodingUtil.base64Encode(SignZeroSettings.sealCertificate())
+    );
+    SignZeroSettings.cached.Seal_Certificate__c = SEAL_CERTIFICATE_BASE64;
+    Assert.areEqual(
+      SEAL_CERTIFICATE_BASE64,
+      EncodingUtil.base64Encode(SignZeroSettings.sealCertificate())
+    );
+  }
+
+  private static Id signOnlySignerWithRealPdf() {
+    SignZeroOrchestrator.DispatchRequest req = new SignZeroOrchestrator.DispatchRequest();
+    req.sourceRecordId = [SELECT Id FROM Account WHERE Name = 'Acme'].Id;
+    req.contentDocumentId = [SELECT ContentDocumentId FROM ContentVersion LIMIT 1]
+    .ContentDocumentId;
+    req.recipientName = 'Casey Customer';
+    req.recipientEmail = 'casey@example.com';
+    Id requestId = SignZeroOrchestrator.execute(
+        new List<SignZeroOrchestrator.DispatchRequest>{ req }
+      )[0]
+      .signatureRequestId;
+    plantToken(recipient(requestId, 1).Id, TOKEN_A);
+    signAs(TOKEN_A, EncodingUtil.base64Encode(Blob.toPdf('<p>Signed agreement</p>')));
+    new SignZeroProgressionJob(new Set<Id>{ requestId }, new Set<Id>())
+      .execute(null);
+    return requestId;
+  }
+
+  @IsTest
+  static void sealingAddsTheDigitalSealToTheCombinedPdfOnly() {
+    useTestSettings();
+    SignZeroSettings.cached.Certificate_Name__c = 'Any_Certificate';
+    SignZeroSettings.cached.Seal_Certificate__c = SEAL_CERTIFICATE_BASE64;
+    SignZeroPdfSealer.signatureInTest = Blob.valueOf('signature');
+
+    Id requestId = signOnlySignerWithRealPdf();
+
+    SignZero_Request__c env = [
+      SELECT Status__c, Post_Sign_Hash__c, Error_Message__c, Combined_Document_Version_Id__c, Final_Document_Version_Id__c
+      FROM SignZero_Request__c
+      WHERE Id = :requestId
+    ];
+    Assert.areEqual('Completed', env.Status__c);
+    Assert.isNull(env.Error_Message__c);
+    Blob combined = [
+      SELECT VersionData
+      FROM ContentVersion
+      WHERE Id = :env.Combined_Document_Version_Id__c
+    ]
+    .VersionData;
+    Assert.isTrue(
+      EncodingUtil.convertToHex(combined)
+        .contains(EncodingUtil.convertToHex(Blob.valueOf('/SubFilter/ETSI.CAdES.detached')))
+    );
+    Blob executed = [
+      SELECT VersionData
+      FROM ContentVersion
+      WHERE Id = :env.Final_Document_Version_Id__c
+    ]
+    .VersionData;
+    Assert.areEqual(
+      env.Post_Sign_Hash__c,
+      SignZeroSealService.computeSHA256Hash(executed),
+      'the executed file stays exactly what was hashed'
+    );
+    Assert.areEqual(
+      1,
+      [
+        SELECT COUNT()
+        FROM SignZero_Audit_Trail__c
+        WHERE Event_Type__c = 'Completed' AND Details__c LIKE '%PDF digital seal added'
+      ]
+    );
+  }
+
+  @IsTest
+  static void aFailedDigitalSealDoesNotHoldUpTheEnvelope() {
+    useTestSettings();
+    SignZeroSettings.cached.Certificate_Name__c = 'Any_Certificate';
+    SignZeroPdfSealer.signatureInTest = Blob.valueOf('signature');
+
+    // Text that is not Base64 at all, then Base64 that is not a certificate.
+    SignZeroSettings.cached.Seal_Certificate__c = '-----not a certificate-----';
+    assertCompletesWithoutSeal(signOnlySignerWithRealPdf());
+  }
+
+  @IsTest
+  static void aCertificateThatCannotBeParsedDoesNotHoldUpTheEnvelope() {
+    useTestSettings();
+    SignZeroSettings.cached.Certificate_Name__c = 'Any_Certificate';
+    SignZeroPdfSealer.signatureInTest = Blob.valueOf('signature');
+    SignZeroSettings.cached.Seal_Certificate__c = EncodingUtil.base64Encode(Blob.valueOf('x'));
+    assertCompletesWithoutSeal(signOnlySignerWithRealPdf());
+  }
+
+  private static void assertCompletesWithoutSeal(Id requestId) {
+
+    SignZero_Request__c env = [
+      SELECT Status__c, Error_Message__c, Combined_Document_Version_Id__c
+      FROM SignZero_Request__c
+      WHERE Id = :requestId
+    ];
+    Assert.areEqual('Completed', env.Status__c);
+    Assert.isNotNull(env.Combined_Document_Version_Id__c);
+    Assert.isTrue(env.Error_Message__c.contains('digital seal could not be added'), env.Error_Message__c);
+  }
+
   @IsTest
   static void appenderKeepsExecutedBytesAndAddsCertificatePages() {
     Blob executed = Blob.toPdf('<p>Agreement</p>');

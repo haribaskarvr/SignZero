@@ -121,7 +121,7 @@ resources). Object labels stay business-friendly: *Signature Request*, *Signatur
 | Objects | `SignZero_Request__c` (envelope), `SignZero_Recipient__c` (signer), `SignZero_Audit_Trail__c` (append-only ledger) |
 | Configuration | `SignZero_Setting__mdt` (record `Default`), `SignZero_Diagnostics__c` (hierarchy custom setting), global value set `SignZero_Signer_Role` |
 | Events | `SignZero_Event__e` |
-| Apex | `SignZeroOrchestrator`, `SignZeroFieldLayout` (loads the PDF for Place Signatures, checks and serves field layouts), `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroEmailTemplates` (signer emails from email templates), `SignZeroContactPicker` (contacts offered as signers), `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
+| Apex | `SignZeroOrchestrator`, `SignZeroFieldLayout` (loads the PDF for Place Signatures, checks and serves field layouts), `SignZeroGatewayController`, `SignZeroInvitationService`, `SignZeroProgressionJob`, `SignZeroSealService`, `SignZeroPdfAppender`, `SignZeroPdfSealer`, `SignZeroAuditService`, `SignZeroNotifier`, `SignZeroRecordGuard`, `SignZeroResendController`, `SignZeroRecallController`, `SignZeroCertificateController`, `SignZeroEmailCheck`, `SignZeroEmailTemplates` (signer emails from email templates), `SignZeroContactPicker` (contacts offered as signers), `SignZeroReminderJob`, `SignZeroTokenVault`, `SignZeroSettings`, `SignZeroConstants` (statuses, event names, defaults and other fixed values shared by every class), `SignZeroSigner`, `SignZeroTest` |
 | Triggers | `SignZeroRequestTrigger`, `SignZeroRecipientTrigger`, `SignZeroAuditTrailTrigger`, `SignZeroEventTrigger` |
 | Lightning web components | `signZeroPortal` (public signing page), `signZeroFieldPlacer` (Flow screen for placing signatures), `signZeroAnchorTags` (anchor tag reading shared by both), `signZeroPdfEngine` (the PDF host page for the Salesforce screens), `signZeroHeader` (site header: logo and company name), `signZeroLogoEditor` and `signZeroFaviconEditor` (Experience Builder editors that upload the logo and favicon, through the shared `signZeroImageUpload`), `signZeroSignerEditor` (Flow screen for signers: tick the record's contacts or add someone by hand), `signZeroResend` (Resend Invitation action), `signZeroRecall` (Recall Envelope action), `signZeroEmailCheck` (email setup status, in the flow and on SignZero Home). All are built from SLDS classes and `lightning-*` components; custom CSS is kept to what SLDS has no class for (the document viewer and signature pad) |
 | Visualforce | `SignZeroCertificate` (Certificate of Completion, also rendered with `Blob.toPdf`) |
@@ -130,7 +130,7 @@ resources). Object labels stay business-friendly: *Signature Request*, *Signatur
 | Quick actions | `SignZero_Resend` on Signature Request and Signature Recipient, `SignZero_Recall` on Signature Request |
 | App and UI | Lightning app `SignZero`, home page `SignZero_Home`, record page `SignZero_Recipient_Record_Page`, reports in `SignZero_Reports`, dashboard `SignZero_Overview` |
 | Permission sets | `SignZero_User` (internal users), `SignZero_Guest` (site guest user) |
-| Labels | 226 Custom Labels (`SZ_…`, category *SignZero*) for all signer-facing text, the Add Signers and Place Signatures screens, the rich text on the Send for Signature flow screens and the errors people see in Salesforce. The flow's own text (screen titles, field labels, buttons) is translated with Translation Workbench. |
+| Labels | 255 Custom Labels (`SZ_…`, category *SignZero*) for all signer-facing text, the Add Signers and Place Signatures screens, the rich text on the Send for Signature flow screens and the errors people see in Salesforce. The flow's own text (screen titles, field labels, buttons) is translated with Translation Workbench. |
 | Notifications | Custom notification type `SignZero_Status_Update` |
 | Experience site | `SignZero` at `/esign`. Its content bundle is `digitalExperiences/site/SignZero1`: Salesforce adds the `1` because the site's underlying `CustomSite` already holds the name `SignZero`. |
 
@@ -211,6 +211,7 @@ sf apex run test --class-names SignZeroTest --code-coverage --result-format huma
 | Require Consent Before Viewing | Off (default): signers read the document first and accept the electronic record disclosure when they first start signing. On: the disclosure comes first, and the document is not sent to the signer's browser until they accept it; it then loads with a progress indicator. Use it for consumer documents that a law requires to be provided in writing (US ESIGN Act) |
 | Require One-Time Passcode | Off (default). On: signers must enter a 6-digit code emailed to them before the document is shown, including when they reopen a signed copy. Applies to envelopes sent after it is switched on, and to anyone they delegate to; the Certificate of Completion records it as their authentication |
 | Certificate Name | Org certificate used to sign the document hash at sealing (optional) |
+| Seal Certificate | Public part of that certificate, as PEM text. With both set, the combined PDF gets a digital seal (below) |
 | Site Base Url | Signing site URL, when it cannot be found automatically |
 
 The portal's colours can also be set per page in Experience Builder; those win over the custom metadata.
@@ -244,6 +245,25 @@ one and says so.) Resend Invitation, by contrast, always issues a new link and c
 logged in the audit trail and counted on the signer (*Reminders Sent*). A manual resend starts the schedule again.
 When no more reminders are due and the link expires unsigned, the sender gets a bell notification (once; *Expiry
 Notified At*) suggesting Resend Invitation.
+
+**PDF digital seal.** With *Certificate Name* and *Seal Certificate* set, the *Executed with Certificate* PDF gets a
+PAdES digital signature (baseline B-B, `ETSI.CAdES.detached`) when the envelope is sealed, the last change to the file.
+PDF readers then report if a byte changes afterwards. It is invisible on the pages and shows in Adobe's Signature
+Panel. *Executed* and *Certificate of Completion* stay unsealed, so *Executed* still matches *Post Sign Hash*.
+
+To set it up, create or import a certificate in Setup → Certificate and Key Management, download its `.crt`, then put
+its unique name in *Certificate Name* and paste the file's text into *Seal Certificate*. The private key stays in
+Salesforce (`SignZeroPdfSealer` signs through `Crypto.signWithCertificate`). The name readers show comes from the
+certificate, so use one issued to your company rather than a self-signed one where you can.
+
+What readers report about the signer depends on the certificate. With a self-signed certificate, tamper detection
+works everywhere, but Adobe says the signer's identity is unknown unless the reader has added it as trusted. A green
+tick for everyone needs a certificate Adobe already trusts (Adobe Approved Trust List), and those normally require the
+key to be on certified hardware. The signing time comes from Salesforce's clock, not a trusted timestamp service.
+
+A seal that fails (for example, a certificate that expired) does not hold up the envelope: it completes unsealed, the
+reason is kept in *Error Message*, and the sender's bell notification says so. Renew the certificate before it expires,
+and update *Seal Certificate* with the new one.
 
 **Email setup check.** Salesforce accepts an email from an unverified sender and drops it later without an error,
 so SignZero checks for the usual causes: deliverability off, the org-wide address missing or unverified, or (with no
